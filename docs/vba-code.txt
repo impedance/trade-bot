@@ -1,0 +1,8701 @@
+olevba 0.60.2 on Python 3.12.12 - http://decalage.info/python/oletools
+===============================================================================
+FILE: robot-analyze/xl/vbaProject.bin
+Type: OLE
+-------------------------------------------------------------------------------
+VBA MACRO ЭтаКнига.cls 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/ЭтаКнига'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+(empty macro)
+-------------------------------------------------------------------------------
+VBA MACRO Лист1.cls 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/Лист1'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+(empty macro)
+-------------------------------------------------------------------------------
+VBA MACRO General.bas 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/General'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Option Explicit
+
+Sub main()
+
+Dim lastrowStrategies As Integer
+Dim lastrowDeals As Integer
+Dim CurrentPos As Integer
+Dim timeframe As Integer
+Dim Qty As Integer
+
+Dim i As Byte
+
+Dim Strategie As String
+Dim Sheet As String
+Dim SecCode As String
+Dim CurrentBlockTrade As String
+Dim HeartBeatTime As String
+Dim Data As String
+Dim Comment As String
+Dim SubComment As String
+Dim Direction As String
+Dim Operation As String
+Dim DeltaandSLandTP As String
+Dim SLandTP As String
+Dim Strat As String
+Dim CurrentTime As String
+
+Dim delta As Double
+Dim sl As Double
+Dim tp As Double
+Dim slip As Double
+Dim StopLimitPrice As Double
+Dim Price As Double
+Dim TakeProfitPrice As Double
+Dim Offset As Double
+Dim Spread As Double
+Dim DealPrice As Double
+Dim Volume As Double
+Dim TSCommission As Double
+
+Dim DealNum As LongLong
+
+Dim Sht_strategies As Worksheet
+Dim Sht_deals As Worksheet
+Dim Sht_quotes As Worksheet
+
+Set Sht_strategies = ThisWorkbook.Sheets("strategies")
+Set Sht_deals = ThisWorkbook.Sheets("deals")
+Set Sht_quotes = ThisWorkbook.Sheets("quotes")
+
+'запись heartbeat в лог
+If Right(Time(), 2) >= 55 And Sht_quotes.Cells(2, 10).Value <> Left(Time(), 5) Then
+    Data = "[HEARTBEAT]"
+    Call Logging(Data)
+    Sht_quotes.Cells(2, 10).Value = Left(Time(), 5)
+End If
+
+'разблокировка торговли
+If Right(Time(), 2) <= 25 Then
+    Call UnblockTrades
+End If
+
+'проверка по стратегиям
+If Right(Time(), 2) >= 55 Then
+    
+    lastrowStrategies = Sht_strategies.Cells(Rows.Count, 1).End(xlUp).Row
+    For i = 2 To lastrowStrategies
+    
+        Strategie = Sht_strategies.Cells(i, 1).Value
+        Sheet = Sht_strategies.Cells(i, 2).Value
+        SecCode = Sht_strategies.Cells(i, 3).Value
+        timeframe = Sht_strategies.Cells(i, 4).Value
+        delta = Sht_strategies.Cells(i, 5).Value
+        sl = Sht_strategies.Cells(i, 6).Value
+        tp = Sht_strategies.Cells(i, 7).Value
+        slip = Sht_strategies.Cells(i, 8).Value
+        Qty = Sht_strategies.Cells(i, 9).Value
+        CurrentPos = Sht_strategies.Cells(i, 10).Value
+        CurrentBlockTrade = Sht_strategies.Cells(i, 11).Value
+        CurrentTime = Left(Time(), 2) & Mid(Time(), 4, 2) & Right(Time(), 2)
+        
+        If Qty > 0 Then 'если стратегия включена
+        
+            If CurrentPos = 0 And CurrentBlockTrade = "" And Strategie = "AR6" And timeframe = 15 _
+                And CurrentTime >= 104400 And CurrentTime <= 183000 Then
+                Call AR6_15(ThisWorkbook.Sheets(Sheet), SecCode, Qty, delta, sl, tp, slip, i)
+                Data = "[CHECK] " & Strategie & " " & timeframe & "min" & " Sheets(" & Sheet & ") SecCode=" & SecCode & " Qty=" & Qty & " delta=" & delta & " sl=" & sl & " tp=" & tp & " slip=" & slip
+                Call Logging(Data)
+            End If
+            
+            If CurrentPos = 0 And CurrentBlockTrade = "" And Strategie = "S7" And timeframe = 120 _
+                And CurrentTime >= 90000 And CurrentTime <= 183000 Then
+                Call S7_120(ThisWorkbook.Sheets(Sheet), SecCode, Qty, delta, sl, tp, slip, i)
+                Data = "[CHECK] " & Strategie & " " & timeframe & "min" & " Sheets(" & Sheet & ") SecCode=" & SecCode & " Qty=" & Qty & " delta=" & delta & " sl=" & sl & " tp=" & tp & " slip=" & slip
+                Call Logging(Data)
+            End If
+            
+            If CurrentPos = 0 And CurrentBlockTrade = "" And Strategie = "S7" And timeframe = 180 _
+                And CurrentTime >= 90000 And CurrentTime <= 183000 Then
+                Call S7_180(ThisWorkbook.Sheets(Sheet), SecCode, Qty, delta, sl, tp, slip, i)
+                Data = "[CHECK] " & Strategie & " " & timeframe & "min" & " Sheets(" & Sheet & ") SecCode=" & SecCode & " Qty=" & Qty & " delta=" & delta & " sl=" & sl & " tp=" & tp & " slip=" & slip
+                Call Logging(Data)
+            End If
+            
+            If CurrentPos = 0 And CurrentBlockTrade = "" And Strategie = "S8" And timeframe = 120 Then
+                Call S8_120_fixedSLTP(ThisWorkbook.Sheets(Sheet), SecCode, Qty, delta, sl, tp, slip, i)
+                Data = "[CHECK] " & Strategie & " " & timeframe & "min" & " Sheets(" & Sheet & ") SecCode=" & SecCode & " Qty=" & Qty & " delta=" & delta & " sl=" & sl & " tp=" & tp & " slip=" & slip
+                Call Logging(Data)
+            End If
+            
+            If CurrentPos = 0 And CurrentBlockTrade = "" And Strategie = "Rs101" And timeframe = 60 _
+                And CurrentTime >= 90000 And CurrentTime <= 183000 Then
+                Call Rs101(ThisWorkbook.Sheets(Sheet), SecCode, Qty, sl, delta)
+                Data = "[CHECK] " & Strategie & " " & timeframe & "min" & " Sheets(" & Sheet & ") SecCode=" & SecCode & " Qty=" & Qty & " delta=" & delta & " sl=" & sl & " tp=" & tp & " slip=" & slip
+                Call Logging(Data)
+            End If
+            
+            If CurrentPos = 0 And CurrentBlockTrade = "" And Strategie = "Rs102" _
+                And CurrentTime >= 90000 And CurrentTime <= 183000 Then
+                Call Rs102(ThisWorkbook.Sheets(Sheet), timeframe, SecCode, Qty, sl, tp)
+                Data = "[CHECK] " & Strategie & " " & timeframe & "min" & " Sheets(" & Sheet & ") SecCode=" & SecCode & " Qty=" & Qty & " delta=" & delta & " sl=" & sl & " tp=" & tp & " slip=" & slip
+                Call Logging(Data)
+            End If
+            
+            If CurrentPos = 0 And CurrentBlockTrade = "" And Strategie = "RS7" And timeframe = 120 _
+                And CurrentTime >= 90000 And CurrentTime <= 183000 Then
+                Call RS7_120(ThisWorkbook.Sheets(Sheet), SecCode, Qty, delta, sl, tp, slip, i)
+                Data = "[CHECK] " & Strategie & " " & timeframe & "min" & " Sheets(" & Sheet & ") SecCode=" & SecCode & " Qty=" & Qty & " delta=" & delta & " sl=" & sl & " tp=" & tp & " slip=" & slip
+                Call Logging(Data)
+            End If
+            
+        End If
+        
+    Next
+End If
+
+'обработка новых сделок
+lastrowDeals = Sht_deals.Cells(Rows.Count, 1).End(xlUp).Row
+For i = 2 To lastrowDeals
+    'если сделка ещё не обработана, т.е. не установлена метка "x" на сделке
+    If Sht_deals.Cells(i, 20).Value = "" Then
+        'запись в лог информации о новой сделке
+        DealNum = Sht_deals.Cells(i, 4).Value
+        SecCode = Sht_deals.Cells(i, 5).Value
+        Comment = Sht_deals.Cells(i, 10).Value
+        Data = "[NEWDEAL] " & DealNum & " " & SecCode & " " & Comment
+        Call Logging(Data)
+        
+        Direction = Left(Comment, 1)
+        
+            DealPrice = Sht_deals.Cells(i, 8).Value
+            Qty = Sht_deals.Cells(i, 9).Value
+            Volume = Sht_deals.Cells(i, 11).Value
+            TSCommission = Sht_deals.Cells(i, 12).Value
+            DeltaandSLandTP = Right(Comment, Len(Comment) - InStr(Right(Comment, Len(Comment) - 2), "-") - 2)
+            SLandTP = Mid(DeltaandSLandTP, InStr(DeltaandSLandTP, "-") + 1)
+            sl = CDbl(Left(SLandTP, InStr(SLandTP, "-") - 1))
+            tp = CDbl(Mid(SLandTP, InStr(SLandTP, "-") + 1))
+            SubComment = Mid(Comment, 3)
+            Strategie = Mid(SubComment, 1, InStr(SubComment, "_") - 1)
+            timeframe = Mid(SubComment, InStr(SubComment, "_") + 1, InStr(SubComment, "-") - InStr(SubComment, "_") - 1)
+            delta = Left(DeltaandSLandTP, InStr(DeltaandSLandTP, "-") - 1)
+        
+        
+        'если была сделка открытия позиции, т.е. в комментарии префикс "o", то выставляем стоп-лосс и тейк-профит на закрытие
+        If Direction = "o" Then
+        
+            'подготовка переменных для транзакции на выставление стоп-лосса и тейк-профита
+            Offset = 0
+            Spread = 0.5
+            Comment = "c" & Right(Comment, Len(Comment) - 1)
+            
+            If Sht_deals.Cells(i, 6).Value = "Купля" Then
+                Operation = "S"
+                
+                'увеличение позиции, т.е. увеличиваем Pos на Qty из-за покупки
+                Call UpdatePos(Strategie, SecCode, timeframe, delta, sl, tp, Qty, Volume, TSCommission)
+                'Call UpdatePosWithoutTP(Strategie, SecCode, timeframe, delta, sl, Qty)
+                
+                StopLimitPrice = DealPrice - sl
+                Price = DealPrice - sl - sl
+                TakeProfitPrice = DealPrice + tp
+                
+                Call StopLimitAndTakeProfit(SecCode, Qty, Operation, StopLimitPrice, Price, TakeProfitPrice, Offset, Spread, Comment)
+            End If
+            
+            If Sht_deals.Cells(i, 6).Value = "Продажа" Then
+                Operation = "B"
+                
+                'уменьшение позиции, т.е. уменьшаем Pos на Qty из-за продажи
+                Call UpdatePos(Strategie, SecCode, timeframe, delta, sl, tp, -Qty, Volume, TSCommission)
+                'Call UpdatePosWithoutTP(Strategie, SecCode, timeframe, delta, sl, -Qty)
+                
+                StopLimitPrice = DealPrice + sl
+                Price = DealPrice + sl + sl
+                TakeProfitPrice = DealPrice - tp
+                
+                Call StopLimitAndTakeProfit(SecCode, Qty, Operation, StopLimitPrice, Price, TakeProfitPrice, Offset, Spread, Comment)
+            End If
+        End If
+        
+        If Direction = "c" Then
+            If Sht_deals.Cells(i, 6).Value = "Купля" Then
+                Call UpdatePos(Strategie, SecCode, timeframe, delta, sl, tp, Qty, Volume, TSCommission)
+            End If
+            If Sht_deals.Cells(i, 6).Value = "Продажа" Then
+                Call UpdatePos(Strategie, SecCode, timeframe, delta, sl, tp, -Qty, Volume, TSCommission)
+            End If
+        End If
+        
+        'ставим метку, что сделка обработана
+        Sht_deals.Cells(i, 20).Value = "x"
+    End If
+Next
+
+End Sub
+
+
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------------
+VBA MACRO br_30min_strat3.bas 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/br_30min_strat3'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Sub br_30min_strat3()
+With Sheets("br")
+
+SecCode = "BRG4"
+Quantity = 1
+
+If Left(Time, 2) >= 10 And Left(Time, 2) <= 16 And _
+    (Right(Time, 5) = "59:50" Or Right(Time, 5) = "29:50" Or _
+    Right(Time, 5) = "59:51" Or Right(Time, 5) = "29:51" Or _
+    Right(Time, 5) = "59:52" Or Right(Time, 5) = "29:52" Or _
+    Right(Time, 5) = "59:53" Or Right(Time, 5) = "29:53" Or _
+    Right(Time, 5) = "59:54" Or Right(Time, 5) = "29:54") Then
+    
+        'long strat3
+        If .Cells(4, 4).Value > .Cells(4, 7).Value And _
+            .Cells(3, 4).Value > .Cells(3, 7).Value And _
+            .Cells(2, 7).Value >= .Cells(3, 4).Value And _
+            .Cells(2, 7).Value - .Cells(3, 4).Value < 0.1 And _
+            .Cells(3, 7).Value >= .Cells(2, 4).Value And _
+            .Cells(3, 7).Value - .Cells(2, 4).Value <= 0.05 And _
+            .Cells(2, 9).Value = "" Then
+                    .Cells(2, 9).Value = "x" 'блокируем повторное открытие позиции
+                    Call Logging("long strat3 .Cells(2, 9).Value = ''x''")
+                    Pricebuy = .Cells(2, 7).Value + 0.5 'увеличиваем цену покупку, чтобы наверняка войти в позицию
+                    Call BuyLimit(SecCode, Pricebuy, Quantity, 0.4, 0.25, "o-strat3")
+        End If
+        
+        'short strat3
+        If .Cells(4, 4).Value < .Cells(4, 7).Value And _
+            .Cells(3, 4).Value < .Cells(3, 7).Value And _
+            .Cells(3, 4).Value >= .Cells(2, 7).Value And _
+            .Cells(3, 4).Value - .Cells(2, 7).Value < 0.1 And _
+            .Cells(2, 4).Value >= .Cells(3, 7).Value And _
+            .Cells(2, 4).Value - .Cells(3, 7).Value <= 0.05 And _
+            .Cells(2, 9).Value = "" Then
+                    .Cells(2, 9).Value = "x" 'блокируем повторное открытие позиции
+                    Call Logging("short strat3 .Cells(2, 9).Value = ''x''")
+                    Pricesell = .Cells(2, 7).Value - 0.5 'уменьшаем цену продажи, чтобы наверняка войти в позицию
+                    Call SellLimit(SecCode, Pricesell, Quantity, 0.4, 0.25, "o-strat3")
+        End If
+
+End If
+
+End With
+End Sub
+
+
+-------------------------------------------------------------------------------
+VBA MACRO SupportFunctions.bas 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/SupportFunctions'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Option Explicit
+Public Function BlockTrade(Strategie As String, SecCode As String, timeframe As Integer, delta As Double, sl As Double, tp As Double)
+
+Dim lastrow As Integer
+Dim m As Byte
+Dim i As Byte
+
+With ThisWorkbook.Sheets("strategies")
+
+lastrow = .Cells(Rows.Count, 1).End(xlUp).Row
+
+m = 0 'триггер, что стратегия найдена
+i = 2
+While i <= lastrow And m = 0
+If .Cells(i, 1).Value = Strategie _
+    And .Cells(i, 3).Value = SecCode _
+    And .Cells(i, 4).Value = timeframe _
+    And .Cells(i, 5).Value = delta _
+    And .Cells(i, 6).Value = sl _
+    And .Cells(i, 7).Value = tp Then
+        .Cells(i, 11).Value = "x"
+        Call Logging("BlockTrade: " & .Cells(i, 1).Value & " SecCode=" & .Cells(i, 3).Value & " timeframe=" & .Cells(i, 4).Value & " delta=" & .Cells(i, 5).Value & " sl=" & .Cells(i, 6).Value & " tp=" & .Cells(i, 7).Value)
+        m = 1
+End If
+i = i + 1
+Wend
+
+End With
+End Function
+
+Public Function UnblockTrades()
+
+Dim lastrow As Integer
+Dim i As Byte
+
+With ThisWorkbook.Sheets("strategies")
+
+lastrow = .Cells(Rows.Count, 1).End(xlUp).Row
+
+For i = 2 To lastrow
+    If .Cells(i, 11).Value = "x" Then
+    .Cells(i, 11).Value = ""
+    Call Logging("UnblockTrades: " & .Cells(i, 1).Value & " SecCode=" & .Cells(i, 3).Value & " timeframe=" & .Cells(i, 4).Value & " delta=" & .Cells(i, 5).Value & " sl=" & .Cells(i, 6).Value & " tp=" & .Cells(i, 7).Value)
+    End If
+Next
+
+End With
+End Function
+
+Public Function Get3Candles15min(ByVal sht As Worksheet) As Variant
+
+Dim ArrayOf3Candles(2, 3) As Double
+Erase ArrayOf3Candles
+
+'запись в массив параметров I-ой свечи
+ArrayOf3Candles(0, 0) = sht.Range("D46").Value
+ArrayOf3Candles(0, 1) = WorksheetFunction.Max(sht.Range("E32:E46"))
+ArrayOf3Candles(0, 2) = WorksheetFunction.Min(sht.Range("F32:F46"))
+ArrayOf3Candles(0, 3) = sht.Range("G32").Value
+
+'запись в массив параметров II-ой свечи
+ArrayOf3Candles(1, 0) = sht.Range("D31").Value
+ArrayOf3Candles(1, 1) = WorksheetFunction.Max(sht.Range("E17:E31"))
+ArrayOf3Candles(1, 2) = WorksheetFunction.Min(sht.Range("F17:F31"))
+ArrayOf3Candles(1, 3) = sht.Range("G17").Value
+
+'запись в массив параметров III-ой свечи
+ArrayOf3Candles(2, 0) = sht.Range("D16").Value
+ArrayOf3Candles(2, 1) = WorksheetFunction.Max(sht.Range("E2:E16"))
+ArrayOf3Candles(2, 2) = WorksheetFunction.Min(sht.Range("F2:F16"))
+ArrayOf3Candles(2, 3) = sht.Range("G2").Value
+
+Get3Candles15min = ArrayOf3Candles
+
+End Function
+
+
+Public Function UpdatePos(Strategie As String, SecCode As String, timeframe As Integer, delta As Double, sl As Double, tp As Double, Qty As Integer, Volume As Double, TSCommission As Double)
+
+Dim lastrow As Integer
+Dim m As Byte
+Dim i As Byte
+
+Dim Data As String
+
+With ThisWorkbook.Sheets("strategies")
+
+lastrow = .Cells(Rows.Count, 1).End(xlUp).Row
+'Call Logging("lastrow=" & lastrow)
+
+m = 0 'триггер, что стратегия найдена
+i = 2
+While i <= lastrow And m = 0
+'Call Logging("[UPDATEPOS] Strategie=" & Strategie & " SecCode=" & SecCode & " timeframe=" & timeframe & " delta=" & delta & " sl=" & sl & " tp=" & tp & " Qty=" & Qty)
+If .Cells(i, 1).Value = Strategie _
+    And .Cells(i, 3).Value = SecCode _
+    And .Cells(i, 4).Value = timeframe _
+    And .Cells(i, 5).Value = delta _
+    And .Cells(i, 6).Value = sl _
+    And .Cells(i, 7).Value = tp _
+    And .Cells(i, 7).Value <> 0 Then
+    
+        Data = "[LASTPOS] " & Strategie & " " & SecCode & " timeframe=" & timeframe & " delta=" & delta & " sl=" & sl & " tp=" & tp & " LastPos=" & .Cells(i, 10).Value & " i=" & i
+        Call Logging(Data)
+    
+        .Cells(i, 10).Value = .Cells(i, 10).Value + Qty
+        
+        Data = "[UPDATEPOS] " & Strategie & " " & SecCode & " timeframe=" & timeframe & " delta=" & delta & " sl=" & sl & " tp=" & tp & " Qty=" & Qty
+        Call Logging(Data)
+        
+        Data = "[NEWPOS] " & Strategie & " " & SecCode & " timeframe=" & timeframe & " delta=" & delta & " sl=" & sl & " tp=" & tp & " NewPos=" & .Cells(i, 10).Value & " i=" & i
+        Call Logging(Data)
+        
+        'обработка сделки покупки
+        If Qty > 0 Then
+        .Cells(i, 17).Value = .Cells(i, 17).Value - Volume
+        .Cells(i, 18).Value = .Cells(i, 18).Value + TSCommission
+        .Cells(i, 19).Value = .Cells(i, 19).Value + 1 * Abs(Qty) 'комиссия брокера
+        End If
+        
+        'обработка сделки продажи
+        If Qty < 0 Then
+        .Cells(i, 17).Value = .Cells(i, 17).Value + Volume
+        .Cells(i, 18).Value = .Cells(i, 18).Value + TSCommission
+        .Cells(i, 19).Value = .Cells(i, 19).Value + 1 * Abs(Qty) 'комиссия брокера
+        End If
+        
+        'есть открытая позиция
+        If .Cells(i, 10).Value <> 0 Then
+            .Cells(i, 12).Value = ""
+            .Cells(i, 13).Value = ""
+            .Cells(i, 14).Value = ""
+            .Cells(i, 15).Value = ""
+        End If
+        
+        m = 1
+End If
+i = i + 1
+Wend
+
+'если не обнаружена стратегия с нужным tp, то ищем среди стратегий с плавающим tp
+If m = 0 Then
+    Call UpdatePosWithoutTP(Strategie, SecCode, timeframe, delta, sl, Qty, Volume, TSCommission)
+End If
+
+End With
+End Function
+
+Public Function UpdatePosWithoutTP(Strategie As String, SecCode As String, timeframe As Integer, delta As Double, sl As Double, Qty As Integer, Volume As Double, TSCommission As Double)
+
+Dim lastrow As Integer
+
+Dim m As Byte
+Dim i As Byte
+Dim tp As Double
+
+Dim Data As String
+
+With ThisWorkbook.Sheets("strategies")
+
+lastrow = .Cells(Rows.Count, 1).End(xlUp).Row
+'Call Logging("lastrow=" & lastrow)
+
+m = 0 'триггер, что стратегия найдена
+i = 2
+While i <= lastrow And m = 0
+'Call Logging("[UPDATEPOS] Strategie=" & Strategie & " SecCode=" & SecCode & " timeframe=" & timeframe & " delta=" & delta & " sl=" & sl & " tp=" & tp & " Qty=" & Qty)
+If .Cells(i, 1).Value = Strategie _
+    And .Cells(i, 3).Value = SecCode _
+    And .Cells(i, 4).Value = timeframe _
+    And .Cells(i, 5).Value = delta _
+    And .Cells(i, 6).Value = sl _
+    And .Cells(i, 7).Value = 0 Then
+        
+        Data = "[LASTPOS] " & Strategie & " " & SecCode & " timeframe=" & timeframe & " delta=" & delta & " sl=" & sl & " tp=" & tp & " LastPos=" & .Cells(i, 10).Value & " i=" & i
+        Call Logging(Data)
+        
+        .Cells(i, 10).Value = .Cells(i, 10).Value + Qty
+        Data = "[UPDATEPOSWithoutTP] " & Strategie & " " & SecCode & " timeframe=" & timeframe & " delta=" & delta & " sl=" & sl & " tp=" & tp & " Qty=" & Qty
+        Call Logging(Data)
+        
+        Data = "[NEWPOS] " & Strategie & " " & SecCode & " timeframe=" & timeframe & " delta=" & delta & " sl=" & sl & " tp=" & tp & " NewPos=" & .Cells(i, 10).Value & " i=" & i
+        Call Logging(Data)
+        
+        'обработка сделки покупки
+        If Qty > 0 Then
+        .Cells(i, 17).Value = .Cells(i, 17).Value - Volume
+        .Cells(i, 18).Value = .Cells(i, 18).Value + TSCommission
+        .Cells(i, 19).Value = .Cells(i, 19).Value + 1 * Abs(Qty) 'комиссия брокера
+        End If
+        
+        'обработка сделки продажи
+        If Qty < 0 Then
+        .Cells(i, 17).Value = .Cells(i, 17).Value + Volume
+        .Cells(i, 18).Value = .Cells(i, 18).Value + TSCommission
+        .Cells(i, 19).Value = .Cells(i, 19).Value + 1 * Abs(Qty) 'комиссия брокера
+        End If
+        
+        'есть открытая позиция
+        If .Cells(i, 10).Value <> 0 Then
+            .Cells(i, 12).Value = ""
+            .Cells(i, 13).Value = ""
+            .Cells(i, 14).Value = ""
+            .Cells(i, 15).Value = ""
+        End If
+        
+        m = 1
+End If
+i = i + 1
+Wend
+
+End With
+End Function
+
+Public Function Get3Candles1h(ByVal sht As Worksheet) As Variant
+
+Dim ArrayOf3Candles(2, 3) As Double
+Erase ArrayOf3Candles
+
+'запись в массив параметров I-ой свечи
+ArrayOf3Candles(0, 0) = sht.Range("D181").Value
+ArrayOf3Candles(0, 1) = WorksheetFunction.Max(sht.Range("E122:E181"))
+ArrayOf3Candles(0, 2) = WorksheetFunction.Min(sht.Range("F122:F181"))
+ArrayOf3Candles(0, 3) = sht.Range("G122").Value
+
+'запись в массив параметров II-ой свечи
+ArrayOf3Candles(1, 0) = sht.Range("D121").Value
+ArrayOf3Candles(1, 1) = WorksheetFunction.Max(sht.Range("E62:E121"))
+ArrayOf3Candles(1, 2) = WorksheetFunction.Min(sht.Range("F62:F121"))
+ArrayOf3Candles(1, 3) = sht.Range("G62").Value
+
+'запись в массив параметров III-ой свечи
+ArrayOf3Candles(2, 0) = sht.Range("D61").Value
+ArrayOf3Candles(2, 1) = WorksheetFunction.Max(sht.Range("E2:E61"))
+ArrayOf3Candles(2, 2) = WorksheetFunction.Min(sht.Range("F2:F61"))
+ArrayOf3Candles(2, 3) = sht.Range("G2").Value
+
+Get3Candles1h = ArrayOf3Candles
+
+End Function
+
+
+Public Function Get3Candles2h(ByVal sht As Worksheet) As Variant
+
+Dim ArrayOf3Candles(2, 3) As Double
+Erase ArrayOf3Candles
+
+'запись в массив параметров I-ой свечи
+ArrayOf3Candles(0, 0) = sht.Range("D361").Value
+ArrayOf3Candles(0, 1) = WorksheetFunction.Max(sht.Range("E242:E361"))
+ArrayOf3Candles(0, 2) = WorksheetFunction.Min(sht.Range("F242:F361"))
+ArrayOf3Candles(0, 3) = sht.Range("G242").Value
+
+'запись в массив параметров II-ой свечи
+ArrayOf3Candles(1, 0) = sht.Range("D241").Value
+ArrayOf3Candles(1, 1) = WorksheetFunction.Max(sht.Range("E122:E241"))
+ArrayOf3Candles(1, 2) = WorksheetFunction.Min(sht.Range("F122:F241"))
+ArrayOf3Candles(1, 3) = sht.Range("G122").Value
+
+'запись в массив параметров III-ой свечи
+ArrayOf3Candles(2, 0) = sht.Range("D121").Value
+ArrayOf3Candles(2, 1) = WorksheetFunction.Max(sht.Range("E2:E121"))
+ArrayOf3Candles(2, 2) = WorksheetFunction.Min(sht.Range("F2:F121"))
+ArrayOf3Candles(2, 3) = sht.Range("G2").Value
+
+Get3Candles2h = ArrayOf3Candles
+
+End Function
+-------------------------------------------------------------------------------
+VBA MACRO Orders.bas 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/Orders'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Option Explicit
+Sub BuyLimit(SecCode, Price, Quantity, cmnt)
+
+Dim strFileFullName As String
+Dim ID As Long
+Dim Data As String
+
+strFileFullName = ThisWorkbook.FullName
+ID = DateDiff("s", "1/1/1970", Now()) - 1724000000
+Data = "ACTION=NEW_ORDER; TRANS_ID=" & ID & "; CLASSCODE=SPBFUT; SECCODE=" & SecCode & "; OPERATION=B; PRICE=" & Price & "; TYPE=L; QUANTITY=" & Quantity & "; ACCOUNT=SPBFUTL6ho2; CLIENT_CODE=" & cmnt & ";"
+
+Open Left(strFileFullName, Len(strFileFullName) - 10) & "tri.tri" For Append Shared As #1
+Print #1, Data
+Close #1
+
+Call Logging(Data)
+
+End Sub
+
+Sub SellLimit(SecCode, Price, Quantity, cmnt)
+
+Dim strFileFullName As String
+Dim ID As Long
+Dim Data As String
+
+strFileFullName = ThisWorkbook.FullName
+ID = DateDiff("s", "1/1/1970", Now()) - 1725000000
+Data = "ACTION=NEW_ORDER; TRANS_ID=" & ID & "; CLASSCODE=SPBFUT; SECCODE=" & SecCode & "; OPERATION=S; PRICE=" & Price & "; TYPE=L; QUANTITY=" & Quantity & "; ACCOUNT=SPBFUTL6ho2; CLIENT_CODE=" & cmnt & ";"
+
+Open Left(strFileFullName, Len(strFileFullName) - 10) & "tri.tri" For Append Shared As #1
+Print #1, Data
+Close #1
+
+Call Logging(Data)
+
+End Sub
+
+Sub StopLimitAndTakeProfit(SecCode, Quantity, Operation, StopLimitPrice, Price, TakeProfitPrice, Offset, Spread, cmnt)
+
+Dim ID As Long
+Dim Data As String
+Dim strFileFullName As String
+
+strFileFullName = ThisWorkbook.FullName
+
+ID = DateDiff("s", "1/1/1970", Now()) - 1724001111
+Data = "ACTION=NEW_STOP_ORDER" _
+        & "; TRANS_ID=" & ID _
+        & "; STOP_ORDER_KIND=TAKE_PROFIT_AND_STOP_LIMIT_ORDER" _
+        & "; CLASSCODE=SPBFUT" _
+        & "; SECCODE=" & SecCode _
+        & "; ACCOUNT=SPBFUTL6ho2" _
+        & "; OPERATION=" & Operation _
+        & "; QUANTITY=" & Quantity _
+        & "; STOPPRICE2=" & StopLimitPrice _
+        & "; PRICE=" & Price _
+        & "; STOPPRICE=" & TakeProfitPrice _
+        & "; OFFSET=" & Offset _
+        & "; OFFSET_UNITS=PERCENTS" _
+        & "; SPREAD=" & Spread _
+        & "; SPREAD_UNITS=PERCENTS" _
+        & "; MARKET_STOP_LIMIT=NO" _
+        & "; MARKET_TAKE_PROFIT=NO" _
+        & "; EXPIRY_DATE=GTC" _
+        & "; CLIENT_CODE=" & cmnt
+
+Open Left(strFileFullName, Len(strFileFullName) - 10) & "tri.tri" For Append Shared As #1
+Print #1, Data
+Close #1
+
+Call Logging(Data)
+
+End Sub
+-------------------------------------------------------------------------------
+VBA MACRO s7.bas 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/s7'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Option Explicit
+Sub S7_120(ByVal sht As Worksheet, SecCode As String, Quantity As Integer, delta As Double, sl As Double, tp As Double, slip As Double, p As Byte)
+
+Dim i As Byte
+Dim m As Byte
+
+Dim Max As Double
+Dim Min As Double
+Dim PriceOpen As Double
+Dim PriceClose As Double
+Dim CurrentHigh As Double
+Dim CurrentLow As Double
+Dim Avg As Double
+Dim Price As Double
+
+Dim lastrow As Integer
+
+Dim Params As String 'строка с параметрами для логирования
+Dim Direction As String
+Dim cmnt As String
+
+Max = Application.WorksheetFunction.Max(Range(sht.Cells(2, 5), sht.Cells(121, 5)))
+Min = Application.WorksheetFunction.Min(Range(sht.Cells(2, 6), sht.Cells(121, 6)))
+PriceOpen = sht.Cells(121, 4).Value
+PriceClose = sht.Cells(2, 7).Value
+CurrentHigh = sht.Cells(2, 5).Value
+CurrentLow = sht.Cells(2, 6).Value
+
+'обновление значений max и min по стратегии на странице стратегий
+With ThisWorkbook.Sheets("strategies")
+
+    lastrow = .Cells(Rows.Count, 1).End(xlUp).Row
+    
+    m = 0 'триггер, что стратегия найдена
+    i = 2
+    While i <= lastrow And m = 0
+    If .Cells(i, 1).Value = "S7" _
+        And .Cells(i, 4).Value = 120 _
+        And .Cells(i, 3).Value = SecCode _
+        And .Cells(i, 5).Value = delta _
+        And .Cells(i, 6).Value = sl _
+        And .Cells(i, 7).Value = tp Then
+        
+            m = 1 'найдена нужная стратегия в списке стратегий
+            
+        'обновление значения Direction
+            If PriceOpen > PriceClose Then
+                .Cells(i, 15).Value = "B"
+            End If
+            If PriceOpen < PriceClose Then
+                .Cells(i, 15).Value = "S"
+            End If
+            
+            'обновление значения Max
+            If .Cells(i, 12).Value = "" Or .Cells(i, 12) < Max Then
+                .Cells(i, 12).Value = Max
+                .Cells(i, 13).Value = Min
+                    'обновление значения Avg, т.к. обновился Max (и Min)
+                    .Cells(i, 14).Value = (.Cells(i, 12).Value + .Cells(i, 13).Value) / 2
+            End If
+            
+            'обновление значения Min
+            If .Cells(i, 13).Value = "" Or .Cells(i, 13) > Min Then
+                .Cells(i, 13).Value = Min
+                .Cells(i, 12).Value = Max
+                    'обновление значения Avg, т.к. обновился Min (и Max)
+                    .Cells(i, 14).Value = (.Cells(i, 12).Value + .Cells(i, 13).Value) / 2
+            End If
+            
+    End If
+    i = i + 1
+    Wend
+
+    Avg = .Cells(i - 1, 14).Value
+    Direction = .Cells(i - 1, 15).Value
+
+End With
+
+
+Call BlockTrade("S7", SecCode, 120, delta, sl, tp)
+
+Params = "Max=" & Max & " Min=" & Min & " PriceOpen=" & PriceOpen & " PriceClose=" & PriceClose & " CurrentHigh=" & CurrentHigh & " CurrentLow=" & CurrentLow & " Avg=" & Avg & " Direction=" & Direction
+Call Logging(Params)
+
+cmnt = "o-S7_120-" & delta & "-" & sl & "-" & tp
+
+If Max - Min > delta Then
+
+    'long
+    If CurrentLow < Avg And Direction = "B" Then
+    
+        'записываем в лог параметры, по которым заходим в лонг
+        Params = "[TRADE] LONG " & SecCode & " S7_120 Max=" & Max & " Min=" & Min & " PriceOpen=" & PriceOpen & " PriceClose=" & PriceClose & " CurrentHigh=" & CurrentHigh & " CurrentLow=" & CurrentLow & " Avg=" & Avg & " Direction=" & Direction
+        Call Logging(Params)
+        
+        Price = CurrentHigh 'увеличиваем цену на slip, чтобы наверняка зайти в позицию
+        Call BuyLimit(SecCode, Price, Quantity, cmnt)
+    
+    End If
+    
+    'short
+    If CurrentHigh > Avg And Direction = "S" Then
+    
+        'записываем в лог параметры, по которым заходим в шорт
+        Params = "[TRADE] SHORT " & SecCode & " S7_120 Max=" & Max & " Min=" & Min & " PriceOpen=" & PriceOpen & " PriceClose=" & PriceClose & " CurrentHigh=" & CurrentHigh & " CurrentLow=" & CurrentLow & " Avg=" & Avg & " Direction=" & Direction
+        Call Logging(Params)
+        
+        Price = CurrentLow 'увеличиваем цену на slip, чтобы наверняка зайти в позицию
+        Call SellLimit(SecCode, Price, Quantity, cmnt)
+    
+    End If
+
+End If
+
+End Sub
+
+
+Sub S7_180(ByVal sht As Worksheet, SecCode As String, Quantity As Integer, delta As Double, sl As Double, tp As Double, slip As Double, p As Byte)
+
+Dim i As Byte
+Dim m As Byte
+
+Dim Max As Double
+Dim Min As Double
+Dim PriceOpen As Double
+Dim PriceClose As Double
+Dim CurrentHigh As Double
+Dim CurrentLow As Double
+Dim Avg As Double
+Dim Price As Double
+
+Dim lastrow As Integer
+
+Dim Params As String 'строка с параметрами для логирования
+Dim Direction As String
+Dim cmnt As String
+
+Max = Application.WorksheetFunction.Max(Range(sht.Cells(2, 5), sht.Cells(181, 5)))
+Min = Application.WorksheetFunction.Min(Range(sht.Cells(2, 6), sht.Cells(181, 6)))
+PriceOpen = sht.Cells(181, 4).Value
+PriceClose = sht.Cells(2, 7).Value
+CurrentHigh = sht.Cells(2, 5).Value
+CurrentLow = sht.Cells(2, 6).Value
+
+'обновление значений max и min по стратегии на странице стратегий
+With ThisWorkbook.Sheets("strategies")
+
+    lastrow = .Cells(Rows.Count, 1).End(xlUp).Row
+    
+    m = 0 'триггер, что стратегия найдена
+    i = 2
+    While i <= lastrow And m = 0
+    If .Cells(i, 1).Value = "S7" _
+        And .Cells(i, 4).Value = 180 _
+        And .Cells(i, 3).Value = SecCode _
+        And .Cells(i, 5).Value = delta _
+        And .Cells(i, 6).Value = sl _
+        And .Cells(i, 7).Value = tp Then
+        
+            m = 1 'найдена нужная стратегия в списке стратегий
+            
+        'обновление значения Direction
+            If PriceOpen > PriceClose Then
+                .Cells(i, 15).Value = "B"
+            End If
+            If PriceOpen < PriceClose Then
+                .Cells(i, 15).Value = "S"
+            End If
+            
+            'обновление значения Max
+            If .Cells(i, 12).Value = "" Or .Cells(i, 12) < Max Then
+                .Cells(i, 12).Value = Max
+                .Cells(i, 13).Value = Min
+                    'обновление значения Avg, т.к. обновился Max (и Min)
+                    .Cells(i, 14).Value = (.Cells(i, 12).Value + .Cells(i, 13).Value) / 2
+            End If
+            
+            'обновление значения Min
+            If .Cells(i, 13).Value = "" Or .Cells(i, 13) > Min Then
+                .Cells(i, 13).Value = Min
+                .Cells(i, 12).Value = Max
+                    'обновление значения Avg, т.к. обновился Min (и Max)
+                    .Cells(i, 14).Value = (.Cells(i, 12).Value + .Cells(i, 13).Value) / 2
+            End If
+            
+    End If
+    i = i + 1
+    Wend
+
+    Avg = .Cells(i - 1, 14).Value
+    Direction = .Cells(i - 1, 15).Value
+
+End With
+
+
+Call BlockTrade("S7", SecCode, 180, delta, sl, tp)
+
+Params = "Max=" & Max & " Min=" & Min & " PriceOpen=" & PriceOpen & " PriceClose=" & PriceClose & " CurrentHigh=" & CurrentHigh & " CurrentLow=" & CurrentLow & " Avg=" & Avg & " Direction=" & Direction
+Call Logging(Params)
+
+cmnt = "o-S7_180-" & delta & "-" & sl & "-" & tp
+
+    'long
+    If CurrentLow < Avg And Direction = "B" Then
+    
+        'записываем в лог параметры, по которым заходим в лонг
+        Params = "[TRADE] LONG " & SecCode & " S7_180 Max=" & Max & " Min=" & Min & " PriceOpen=" & PriceOpen & " PriceClose=" & PriceClose & " CurrentHigh=" & CurrentHigh & " CurrentLow=" & CurrentLow & " Avg=" & Avg & " Direction=" & Direction
+        Call Logging(Params)
+        
+        Price = CurrentHigh 'увеличиваем цену на slip, чтобы наверняка зайти в позицию
+        Call BuyLimit(SecCode, Price, Quantity, cmnt)
+    
+    End If
+    
+    'short
+    If CurrentHigh > Avg And Direction = "S" Then
+    
+        'записываем в лог параметры, по которым заходим в шорт
+        Params = "[TRADE] SHORT " & SecCode & " S7_120 Max=" & Max & " Min=" & Min & " PriceOpen=" & PriceOpen & " PriceClose=" & PriceClose & " CurrentHigh=" & CurrentHigh & " CurrentLow=" & CurrentLow & " Avg=" & Avg & " Direction=" & Direction
+        Call Logging(Params)
+        
+        Price = CurrentLow 'увеличиваем цену на slip, чтобы наверняка зайти в позицию
+        Call SellLimit(SecCode, Price, Quantity, cmnt)
+    
+    End If
+
+End Sub
+
+
+
+
+Sub RS7_120(ByVal sht As Worksheet, SecCode As String, Quantity As Integer, delta As Double, sl As Double, tp As Double, slip As Double, p As Byte)
+
+Dim i As Byte
+Dim m As Byte
+
+Dim Max As Double
+Dim Min As Double
+Dim PriceOpen As Double
+Dim PriceClose As Double
+Dim CurrentHigh As Double
+Dim CurrentLow As Double
+Dim Avg As Double
+Dim Price As Double
+
+Dim lastrow As Integer
+
+Dim Params As String 'строка с параметрами для логирования
+Dim Direction As String
+Dim cmnt As String
+
+Max = Application.WorksheetFunction.Max(Range(sht.Cells(2, 5), sht.Cells(121, 5)))
+Min = Application.WorksheetFunction.Min(Range(sht.Cells(2, 6), sht.Cells(121, 6)))
+PriceOpen = sht.Cells(121, 4).Value
+PriceClose = sht.Cells(2, 7).Value
+CurrentHigh = sht.Cells(2, 5).Value
+CurrentLow = sht.Cells(2, 6).Value
+
+'обновление значений max и min по стратегии на странице стратегий
+With ThisWorkbook.Sheets("strategies")
+
+    lastrow = .Cells(Rows.Count, 1).End(xlUp).Row
+    
+    m = 0 'триггер, что стратегия найдена
+    i = 2
+    While i <= lastrow And m = 0
+    If .Cells(i, 1).Value = "RS7" _
+        And .Cells(i, 4).Value = 120 _
+        And .Cells(i, 3).Value = SecCode _
+        And .Cells(i, 5).Value = delta _
+        And .Cells(i, 6).Value = sl _
+        And .Cells(i, 7).Value = tp Then
+        
+            m = 1 'найдена нужная стратегия в списке стратегий
+        
+        'нет открытой позиции
+        If .Cells(i, 10).Value = 0 Then
+        
+            If Max - Min > delta Then
+            
+                'обновление значения Max
+                If .Cells(i, 12).Value = "" Or .Cells(i, 12) < Max Then
+                    .Cells(i, 12).Value = Max
+                    .Cells(i, 13).Value = Min
+                    
+                        'обновление значения Avg, т.к. обновился Max (и Min)
+                        .Cells(i, 14).Value = (.Cells(i, 12).Value + .Cells(i, 13).Value) / 2
+                        
+                    'обновление значения Direction
+                    If PriceOpen < PriceClose Then
+                        .Cells(i, 15).Value = "B"
+                    End If
+                    If PriceOpen > PriceClose Then
+                        .Cells(i, 15).Value = "S"
+                    End If
+                    
+                End If
+            
+                'обновление значения Min
+                If .Cells(i, 13).Value = "" Or .Cells(i, 13) > Min Then
+                    .Cells(i, 13).Value = Min
+                    .Cells(i, 12).Value = Max
+                        'обновление значения Avg, т.к. обновился Min (и Max)
+                        .Cells(i, 14).Value = (.Cells(i, 12).Value + .Cells(i, 13).Value) / 2
+                    
+                    'обновление значения Direction
+                    If PriceOpen < PriceClose Then
+                        .Cells(i, 15).Value = "B"
+                    End If
+                    If PriceOpen > PriceClose Then
+                        .Cells(i, 15).Value = "S"
+                    End If
+                    
+                End If
+   
+            End If
+            
+        End If
+        
+    End If
+    i = i + 1
+    Wend
+
+    Avg = .Cells(i - 1, 14).Value
+    Direction = .Cells(i - 1, 15).Value
+
+End With
+
+
+Call BlockTrade("RS7", SecCode, 120, delta, sl, tp)
+
+Params = "Max=" & Max & " Min=" & Min & " PriceOpen=" & PriceOpen & " PriceClose=" & PriceClose & " CurrentHigh=" & CurrentHigh & " CurrentLow=" & CurrentLow & " Avg=" & Avg & " Direction=" & Direction
+Call Logging(Params)
+
+cmnt = "o-RS7_120-" & delta & "-" & sl & "-" & tp
+
+    'long
+    If CurrentLow < Avg And Direction = "B" Then
+    
+        'записываем в лог параметры, по которым заходим в лонг
+        Params = "[TRADE] LONG " & SecCode & " RS7_120 Max=" & Max & " Min=" & Min & " PriceOpen=" & PriceOpen & " PriceClose=" & PriceClose & " CurrentHigh=" & CurrentHigh & " CurrentLow=" & CurrentLow & " Avg=" & Avg & " Direction=" & Direction
+        Call Logging(Params)
+        
+        Price = CurrentHigh 'увеличиваем цену на slip, чтобы наверняка зайти в позицию
+        Call BuyLimit(SecCode, Price, Quantity, cmnt)
+    
+    End If
+    
+    'short
+    If CurrentHigh > Avg And Direction = "S" Then
+    
+        'записываем в лог параметры, по которым заходим в шорт
+        Params = "[TRADE] SHORT " & SecCode & " RS7_120 Max=" & Max & " Min=" & Min & " PriceOpen=" & PriceOpen & " PriceClose=" & PriceClose & " CurrentHigh=" & CurrentHigh & " CurrentLow=" & CurrentLow & " Avg=" & Avg & " Direction=" & Direction
+        Call Logging(Params)
+        
+        Price = CurrentLow 'увеличиваем цену на slip, чтобы наверняка зайти в позицию
+        Call SellLimit(SecCode, Price, Quantity, cmnt)
+    
+    End If
+
+End Sub
+
+-------------------------------------------------------------------------------
+VBA MACRO Log.bas 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/Log'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Option Explicit
+Sub Logging(Data)
+'With Sheets("Log")
+
+'lastrow = .Cells(Rows.Count, 1).End(xlUp).Row
+'.Cells(lastrow + 1, 1) = Now()
+'.Cells(lastrow + 1, 2) = Data 'text
+Dim strFileFullName As String
+Dim stringToLog As String
+
+strFileFullName = ThisWorkbook.FullName
+stringToLog = Now & " " & Data
+Open Left(strFileFullName, Len(strFileFullName) - 10) & "Logs\" & Date & ".log" For Append Shared As #1
+Print #1, stringToLog
+Close #1
+
+'End With
+End Sub
+-------------------------------------------------------------------------------
+VBA MACRO Лист3.cls 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/Лист3'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+(empty macro)
+-------------------------------------------------------------------------------
+VBA MACRO deals.bas 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/Deals'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Sub deals()
+With Sheets("deals")
+
+lastrow = .Cells(Rows.Count, 2).End(xlUp).Row
+
+For i = 2 To lastrow
+If .Cells(i, 1).Value = "" Then 'получена новая сделка, которая ещё не обработана
+    .Cells(i, 1).Value = "x" 'проставили признак, что сделка обработана
+    stringToLog = .Cells(i, 2).Value & "_" & .Cells(i, 6).Value & "_" & .Cells(i, 7).Value & "_" & .Cells(i, 9).Value & "_" & .Cells(i, 10).Value & "_" & .Cells(i, 12).Value
+    Call Logging(stringToLog)
+        'снимаем блокировку на открытие позиции по стратегии 3, т.к. прошла сделка закрытия позиции
+        If Left(.Cells(i, 12).Value, 8) = "c-strat3" Then
+        .Cells(2, 9).Value = ""
+        End If
+        'прошла сделка открытия позиции, выставляем стоп со связанной на закрытие позиции
+        If Left(.Cells(i, 12).Value, 8) = "o-strat3" Then
+        .Cells(3, 9).Value = "x" 'проставляем признак, что выставлена заявка на закрытие позиции
+        SecCode = .Cells(i, 6).Value
+            'устанавливаем направление заявки на закрытие позиции противоположное направлению в сделке открытия
+            If .Cells(i, 7).Value = "Купля" Then
+            Action = "Продажа"
+            End If
+            If .Cells(i, 7).Value = "Продажа" Then
+            Action = "Купля"
+            End If
+        TrdAccount = .Cells(i, 8).Value
+        Volume = .Cells(i, 10).Value
+        End If
+    
+End If
+Next
+
+End With
+End Sub
+-------------------------------------------------------------------------------
+VBA MACRO Лист4.cls 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/Лист4'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+(empty macro)
+-------------------------------------------------------------------------------
+VBA MACRO Лист5.cls 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/Лист5'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+(empty macro)
+-------------------------------------------------------------------------------
+VBA MACRO s6.bas 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/s6'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Option Explicit
+Sub AR6_15(ByVal sht As Worksheet, SecCode As String, Quantity As Integer, delta As Double, sl As Double, tp As Double, slip As Double, p As Byte)
+
+Dim min15_Candle1_O As Double
+Dim min15_Candle1_C As Double
+Dim min15_Candle2_O As Double
+Dim min15_Candle2_C As Double
+Dim min15_Candle3_O As Double
+Dim min15_Candle3_C As Double
+Dim Price As Double
+Dim cmnt As String
+Dim CandleParams As String 'строка с параметрами свечей для логирования
+Dim GoldArray15min As Variant
+Dim timeframe As Integer
+
+'GoldArray15min = Get3Candles15min(Sheets("gold"))
+GoldArray15min = Get3Candles15min(sht)
+
+min15_Candle1_O = GoldArray15min(0, 0)
+min15_Candle1_C = GoldArray15min(0, 3)
+min15_Candle2_O = GoldArray15min(1, 0)
+min15_Candle2_C = GoldArray15min(1, 3)
+min15_Candle3_O = GoldArray15min(2, 0)
+min15_Candle3_C = GoldArray15min(2, 3)
+
+Call BlockTrade("AR6", SecCode, 15, delta, sl, tp)
+
+cmnt = "o-AR6_15-" & delta & "-" & sl & "-" & tp
+
+CandleParams = "O1=" & min15_Candle1_O & "; C1=" & min15_Candle1_C & "; O2=" & min15_Candle2_O & "; C2=" & min15_Candle2_C & "; O3=" & min15_Candle3_O & "; C3=" & min15_Candle3_C
+Call Logging(CandleParams)
+    
+    'short
+    If min15_Candle1_O > min15_Candle1_C _
+    And min15_Candle2_O > min15_Candle2_C _
+    And min15_Candle3_O < min15_Candle3_C _
+    And min15_Candle1_O - min15_Candle2_C >= delta _
+    And min15_Candle3_C > min15_Candle1_O Then
+    
+    'записываем в лог параметры свечей, по которым заходим в шорт
+    CandleParams = "[TRADE] SHORT " & SecCode & " AR6_15 O1=" & min15_Candle1_O & "; C1=" & min15_Candle1_C & "; O2=" & min15_Candle2_O & "; C2=" & min15_Candle2_C & "; O3=" & min15_Candle3_O & "; C3=" & min15_Candle3_C
+    Call Logging(CandleParams)
+    
+    Price = min15_Candle3_C 'уменьшаем цену на slip, чтобы наверняка зайти в позицию
+    Call SellLimit(SecCode, Price, Quantity, cmnt)
+    'ThisWorkbook.Sheets("strategies").Cells(p, 10).Value = -Quantity
+    
+    End If
+    
+    
+    'long
+    If min15_Candle1_O < min15_Candle1_C _
+    And min15_Candle2_O < min15_Candle2_C _
+    And min15_Candle3_O > min15_Candle3_C _
+    And min15_Candle2_C - min15_Candle1_O >= delta _
+    And min15_Candle3_C < min15_Candle1_O Then
+    
+    'записываем в лог параметры свечей, по которым заходим в лонг
+    CandleParams = "[TRADE] LONG " & SecCode & " AR6_15 O1=" & min15_Candle1_O & "; C1=" & min15_Candle1_C & "; O2=" & min15_Candle2_O & "; C2=" & min15_Candle2_C & "; O3=" & min15_Candle3_O & "; C3=" & min15_Candle3_C
+    Call Logging(CandleParams)
+    
+    Price = min15_Candle3_C 'увеличиваем цену на slip, чтобы наверняка зайти в позицию
+    Call BuyLimit(SecCode, Price, Quantity, cmnt)
+    'ThisWorkbook.Sheets("strategies").Cells(p, 10).Value = Quantity
+    
+    End If
+
+End Sub
+-------------------------------------------------------------------------------
+VBA MACRO Лист6.cls 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/Лист6'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+(empty macro)
+-------------------------------------------------------------------------------
+VBA MACRO Лист7.cls 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/Лист7'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+(empty macro)
+-------------------------------------------------------------------------------
+VBA MACRO Лист8.cls 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/Лист8'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Option Explicit
+Private Sub Worksheet_Calculate()
+
+Call main
+
+End Sub
+-------------------------------------------------------------------------------
+VBA MACRO Лист9.cls 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/Лист9'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+(empty macro)
+-------------------------------------------------------------------------------
+VBA MACRO s8.bas 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/s8'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Option Explicit
+Sub S8_120_fixedSLTP(ByVal sht As Worksheet, SecCode As String, Quantity As Integer, delta As Double, sl As Double, tp As Double, slip As Double, p As Byte)
+
+Dim i As Byte
+Dim m As Byte
+
+Dim Max As Double
+Dim Min As Double
+Dim PriceOpen As Double
+Dim PriceClose As Double
+Dim CurrentHigh As Double
+Dim CurrentLow As Double
+Dim Avg As Double
+Dim Price As Double
+Dim EnterPrice As Double
+
+Dim lastrow As Integer
+
+Dim Params As String 'строка с параметрами для логирования
+Dim Direction As String
+Dim cmnt As String
+
+Max = Application.WorksheetFunction.Max(Range(sht.Cells(2, 5), sht.Cells(121, 5)))
+Min = Application.WorksheetFunction.Min(Range(sht.Cells(2, 6), sht.Cells(121, 6)))
+PriceOpen = sht.Cells(121, 4).Value
+PriceClose = sht.Cells(2, 7).Value
+CurrentHigh = sht.Cells(2, 5).Value
+CurrentLow = sht.Cells(2, 6).Value
+
+'обновление значений max и min по стратегии на странице стратегий
+With ThisWorkbook.Sheets("strategies")
+
+    lastrow = .Cells(Rows.Count, 1).End(xlUp).Row
+    
+    m = 0 'триггер, что стратегия найдена
+    i = 2
+    While i <= lastrow And m = 0
+    If .Cells(i, 1).Value = "S8" _
+        And .Cells(i, 4).Value = 120 _
+        And .Cells(i, 3).Value = SecCode _
+        And .Cells(i, 5).Value = delta _
+        And .Cells(i, 6).Value = sl _
+        And .Cells(i, 7).Value = tp Then
+        
+            m = 1 'найдена нужная стратегия в списке стратегий
+            
+            'обновление значения Direction
+            If PriceOpen < PriceClose Then
+                .Cells(i, 15).Value = "B"
+                .Cells(i, 16).Value = Min
+            End If
+            If PriceOpen > PriceClose Then
+                .Cells(i, 15).Value = "S"
+                .Cells(i, 16).Value = Max
+            End If
+            
+            'обновление значения Max
+            If .Cells(i, 12).Value = "" Or .Cells(i, 12) < Max Then
+                .Cells(i, 12).Value = Max
+                .Cells(i, 13).Value = Min
+                    'обновление значения Avg, т.к. обновился Max (и Min)
+                    .Cells(i, 14).Value = (.Cells(i, 12).Value + .Cells(i, 13).Value) / 2
+            End If
+            
+            'обновление значения Min
+            If .Cells(i, 13).Value = "" Or .Cells(i, 13) > Min Then
+                .Cells(i, 13).Value = Min
+                .Cells(i, 12).Value = Max
+                    'обновление значения Avg, т.к. обновился Min (и Max)
+                    .Cells(i, 14).Value = (.Cells(i, 12).Value + .Cells(i, 13).Value) / 2
+            End If
+            
+            'обновление
+            
+    End If
+    i = i + 1
+    Wend
+
+    Avg = .Cells(i - 1, 14).Value
+    Direction = .Cells(i - 1, 15).Value
+    EnterPrice = .Cells(i - 1, 16).Value
+
+End With
+
+
+Call BlockTrade("S8", SecCode, 120, delta, sl, tp)
+
+Params = "Max=" & Max & " Min=" & Min & " PriceOpen=" & PriceOpen & " PriceClose=" & PriceClose & " CurrentHigh=" & CurrentHigh & " CurrentLow=" & CurrentLow & " Avg=" & Avg & " Direction=" & Direction
+Call Logging(Params)
+
+cmnt = "o-S8_120-" & delta & "-" & sl & "-" & tp
+
+    'long
+    If CurrentLow <= EnterPrice And Direction = "B" Then
+    
+        'записываем в лог параметры, по которым заходим в лонг
+        Params = "[TRADE] LONG " & SecCode & " S8_120 Max=" & Max & " Min=" & Min & " PriceOpen=" & PriceOpen & " PriceClose=" & PriceClose & " CurrentHigh=" & CurrentHigh & " CurrentLow=" & CurrentLow & " Avg=" & Avg & " Direction=" & Direction
+        Call Logging(Params)
+        
+        Price = CurrentHigh 'увеличиваем цену, чтобы наверняка зайти в позицию
+        Call BuyLimit(SecCode, Price, Quantity, cmnt)
+    
+    End If
+    
+    'short
+    If CurrentHigh >= EnterPrice And Direction = "S" Then
+    
+        'записываем в лог параметры, по которым заходим в шорт
+        Params = "[TRADE] SHORT " & SecCode & " S8_120 Max=" & Max & " Min=" & Min & " PriceOpen=" & PriceOpen & " PriceClose=" & PriceClose & " CurrentHigh=" & CurrentHigh & " CurrentLow=" & CurrentLow & " Avg=" & Avg & " Direction=" & Direction
+        Call Logging(Params)
+        
+        Price = CurrentLow 'уменьшаем цену, чтобы наверняка зайти в позицию
+        Call SellLimit(SecCode, Price, Quantity, cmnt)
+    
+    End If
+
+End Sub
+
+-------------------------------------------------------------------------------
+VBA MACRO s10.bas 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/s10'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Sub Rs101(ByVal sht As Worksheet, SecCode As String, Quantity As Integer, sl As Double, k As Double)
+'стратегия с фиксированным выходом, равным 18 раз от дельты close и high3 или low3
+
+Dim h1_Candle1_O As Double
+Dim h1_Candle1_H As Double
+Dim h1_Candle1_L As Double
+Dim h1_Candle1_C As Double
+
+Dim h1_Candle2_O As Double
+Dim h1_Candle2_H As Double
+Dim h1_Candle2_L As Double
+Dim h1_Candle2_C As Double
+
+Dim h1_Candle3_O As Double
+Dim h1_Candle3_H As Double
+Dim h1_Candle3_L As Double
+Dim h1_Candle3_C As Double
+
+Dim Price As Double
+Dim tp As Double
+Dim delta As Double
+
+Dim cmnt As String
+Dim CandleParams As String 'строка с параметрами свечей для логирования
+Dim GoldArray1h As Variant
+Dim timeframe As Integer
+Dim slip As Integer
+
+GoldArray1h = Get3Candles1h(sht)
+
+h1_Candle1_O = GoldArray1h(0, 0)
+h1_Candle1_H = GoldArray1h(0, 1)
+h1_Candle1_L = GoldArray1h(0, 2)
+h1_Candle1_C = GoldArray1h(0, 3)
+
+h1_Candle2_O = GoldArray1h(1, 0)
+h1_Candle2_H = GoldArray1h(1, 1)
+h1_Candle2_L = GoldArray1h(1, 2)
+h1_Candle2_C = GoldArray1h(1, 3)
+
+h1_Candle3_O = GoldArray1h(2, 0)
+h1_Candle3_H = GoldArray1h(2, 1)
+h1_Candle3_L = GoldArray1h(2, 2)
+h1_Candle3_C = GoldArray1h(2, 3)
+
+''''''''
+'''''''
+'''''' ПОПРАВИТЬ BLOCKTRADE
+
+slip = 0
+tp = 0
+delta = k
+
+Call BlockTrade("Rs101", SecCode, 60, delta, sl, tp)
+
+CandleParams = "O1=" & h1_Candle1_O & " H1=" & h1_Candle1_H & " L1=" & h1_Candle1_L & " C1=" & h1_Candle1_C _
+            & " O2=" & h1_Candle2_O & " H2=" & h1_Candle2_H & " L2=" & h1_Candle2_L & "; C2=" & h1_Candle2_C _
+            & " O3=" & h1_Candle3_O & " H3=" & h1_Candle3_H & " L3=" & h1_Candle3_L & "; C3=" & h1_Candle3_C
+Call Logging(CandleParams)
+    
+    'short
+    If h1_Candle1_O > h1_Candle1_C _
+    And h1_Candle2_O > h1_Candle2_C _
+    And h1_Candle3_O < h1_Candle3_C _
+    And h1_Candle1_H > h1_Candle2_H _
+    And h1_Candle3_H > h1_Candle2_H _
+    And h1_Candle1_L > h1_Candle2_L _
+    And h1_Candle3_O <= h1_Candle2_C _
+    And h1_Candle3_C >= h1_Candle2_O Then
+
+        tp = Round((h1_Candle3_C - h1_Candle3_L) * k, 1)
+
+        'записываем в лог параметры свечей, по которым заходим в шорт
+        CandleParams = "[TRADE] SHORT " & SecCode & " Rs10_1_1h O1=" & h1_Candle1_O & " H1=" & h1_Candle1_H & " L1=" & h1_Candle1_L & " C1=" & h1_Candle1_C _
+                        & " O2=" & h1_Candle2_O & " H2=" & h1_Candle2_H & " L2=" & h1_Candle2_L & "; C2=" & h1_Candle2_C _
+                        & " O3=" & h1_Candle3_O & " H3=" & h1_Candle3_H & " L3=" & h1_Candle3_L & "; C3=" & h1_Candle3_C
+        Call Logging(CandleParams)
+        
+        Price = h1_Candle3_L 'отправляем заявку с ценой low часа, чтобы наверняка войти в позицию
+        cmnt = "o-Rs101_60-" & k & "-" & sl & "-" & tp
+        Call SellLimit(SecCode, Price, Quantity, cmnt)
+    
+    End If
+    
+    'long
+    If h1_Candle1_O < h1_Candle1_C _
+    And h1_Candle2_O < h1_Candle2_C _
+    And h1_Candle3_O > h1_Candle3_C _
+    And h1_Candle1_L < h1_Candle2_L _
+    And h1_Candle3_L < h1_Candle2_L _
+    And h1_Candle1_H < h1_Candle2_H _
+    And h1_Candle3_O >= h1_Candle2_C _
+    And h1_Candle3_C <= h1_Candle2_O Then
+        
+        tp = Round((h1_Candle3_H - h1_Candle3_C) * k, 1)
+        
+        'записываем в лог параметры свечей, по которым заходим в лонг
+        CandleParams = "[TRADE] LONG " & SecCode & " Rs10_1_1h O1=" & h1_Candle1_O & " H1=" & h1_Candle1_H & " L1=" & h1_Candle1_L & " C1=" & h1_Candle1_C _
+                        & " O2=" & h1_Candle2_O & " H2=" & h1_Candle2_H & " L2=" & h1_Candle2_L & "; C2=" & h1_Candle2_C _
+                        & " O3=" & h1_Candle3_O & " H3=" & h1_Candle3_H & " L3=" & h1_Candle3_L & "; C3=" & h1_Candle3_C
+        Call Logging(CandleParams)
+        
+        Price = h1_Candle3_H 'отправляем заявку с ценой high часа, чтобы наверняка войти в позицию
+        cmnt = "o-Rs101_60-" & k & "-" & sl & "-" & tp
+        Call BuyLimit(SecCode, Price, Quantity, cmnt)
+    
+    End If
+
+End Sub
+
+
+Sub Rs102(ByVal sht As Worksheet, timeframe As Integer, SecCode As String, Quantity As Integer, sl As Double, tp As Double)
+'стратегия с фиксированными sl и tp (tp = sl * k)
+
+Dim Candle1_O As Double
+Dim Candle1_H As Double
+Dim Candle1_L As Double
+Dim Candle1_C As Double
+
+Dim Candle2_O As Double
+Dim Candle2_H As Double
+Dim Candle2_L As Double
+Dim Candle2_C As Double
+
+Dim Candle3_O As Double
+Dim Candle3_H As Double
+Dim Candle3_L As Double
+Dim Candle3_C As Double
+
+Dim Price As Double
+
+Dim cmnt As String
+Dim CandleParams As String 'строка с параметрами свечей для логирования
+Dim CandleArray As Variant
+
+If timeframe = "120" Then CandleArray = Get3Candles2h(sht)
+
+Candle1_O = CandleArray(0, 0)
+Candle1_H = CandleArray(0, 1)
+Candle1_L = CandleArray(0, 2)
+Candle1_C = CandleArray(0, 3)
+
+Candle2_O = CandleArray(1, 0)
+Candle2_H = CandleArray(1, 1)
+Candle2_L = CandleArray(1, 2)
+Candle2_C = CandleArray(1, 3)
+
+Candle3_O = CandleArray(2, 0)
+Candle3_H = CandleArray(2, 1)
+Candle3_L = CandleArray(2, 2)
+Candle3_C = CandleArray(2, 3)
+
+Call BlockTrade("Rs102", SecCode, timeframe, 0, sl, tp)
+
+CandleParams = "O1=" & Candle1_O & " H1=" & Candle1_H & " L1=" & Candle1_L & " C1=" & Candle1_C _
+            & " O2=" & Candle2_O & " H2=" & Candle2_H & " L2=" & Candle2_L & "; C2=" & Candle2_C _
+            & " O3=" & Candle3_O & " H3=" & Candle3_H & " L3=" & Candle3_L & "; C3=" & Candle3_C
+Call Logging(CandleParams)
+
+    'short
+    If Candle1_O > Candle1_C _
+    And Candle2_O > Candle2_C _
+    And Candle3_O < Candle3_C _
+    And Candle1_H > Candle2_H _
+    And Candle3_H > Candle2_H _
+    And Candle1_L > Candle2_L _
+    And Candle3_O <= Candle2_C _
+    And Candle3_C >= Candle2_O Then
+
+        'записываем в лог параметры свечей, по которым заходим в шорт
+        CandleParams = "[TRADE] SHORT " & SecCode & " " & timeframe & " Rs102" _
+                        & " O1=" & Candle1_O & " H1=" & Candle1_H & " L1=" & Candle1_L & " C1=" & Candle1_C _
+                        & " O2=" & Candle2_O & " H2=" & Candle2_H & " L2=" & Candle2_L & " C2=" & Candle2_C _
+                        & " O3=" & Candle3_O & " H3=" & Candle3_H & " L3=" & Candle3_L & " C3=" & Candle3_C
+        Call Logging(CandleParams)
+        
+        Price = Candle3_L 'отправляем заявку с ценой low часа, чтобы наверняка войти в позицию
+        cmnt = "o-Rs102_" & timeframe & "-0-" & sl & "-" & tp
+        Call SellLimit(SecCode, Price, Quantity, cmnt)
+    
+    End If
+    
+    'long
+    If Candle1_O < Candle1_C _
+    And Candle2_O < Candle2_C _
+    And Candle3_O > Candle3_C _
+    And Candle1_L < Candle2_L _
+    And Candle3_L < Candle2_L _
+    And Candle1_H < Candle2_H _
+    And Candle3_O >= Candle2_C _
+    And Candle3_C <= Candle2_O Then
+        
+        'записываем в лог параметры свечей, по которым заходим в лонг
+        CandleParams = "[TRADE] LONG " & SecCode & " " & timeframe & " Rs102" _
+                        & "O1=" & Candle1_O & " H1=" & Candle1_H & " L1=" & Candle1_L & " C1=" & Candle1_C _
+                        & " O2=" & Candle2_O & " H2=" & Candle2_H & " L2=" & Candle2_L & "; C2=" & Candle2_C _
+                        & " O3=" & Candle3_O & " H3=" & Candle3_H & " L3=" & Candle3_L & "; C3=" & Candle3_C
+        Call Logging(CandleParams)
+        
+        Price = Candle3_H 'отправляем заявку с ценой high часа, чтобы наверняка войти в позицию
+        cmnt = "o-Rs102_" & timeframe & "-0-" & sl & "-" & tp
+        Call BuyLimit(SecCode, Price, Quantity, cmnt)
+    
+    End If
+
+End Sub
+
+-------------------------------------------------------------------------------
+VBA MACRO Лист2.cls 
+in file: robot-analyze/xl/vbaProject.bin - OLE stream: 'VBA/Лист2'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+(empty macro)
+-------------------------------------------------------------------------------
+VBA MACRO VBA_P-code.txt 
+in file: VBA P-code - OLE stream: 'VBA P-code'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+' Processing file: robot-analyze/xl/vbaProject.bin
+' ===============================================================================
+' Module streams:
+' VBA/ЭтаКнига - 1183 bytes
+' VBA/Лист1 - 1126 bytes
+' VBA/General - 18614 bytes
+' Line #0:
+' 	Option  (Explicit)
+' Line #1:
+' Line #2:
+' 	FuncDefn (Sub main())
+' Line #3:
+' Line #4:
+' 	Dim 
+' 	VarDefn Sht_deals (As Integer)
+' Line #5:
+' 	Dim 
+' 	VarDefn lastrowStrategies (As Integer)
+' Line #6:
+' 	Dim 
+' 	VarDefn CurrentPos (As Integer)
+' Line #7:
+' 	Dim 
+' 	VarDefn timeframe (As Integer)
+' Line #8:
+' 	Dim 
+' 	VarDefn Qty (As Integer)
+' Line #9:
+' Line #10:
+' 	Dim 
+' 	VarDefn i (As Byte)
+' Line #11:
+' Line #12:
+' 	Dim 
+' 	VarDefn Strategie (As String)
+' Line #13:
+' 	Dim 
+' 	VarDefn Sheet (As String)
+' Line #14:
+' 	Dim 
+' 	VarDefn SecCode (As String)
+' Line #15:
+' 	Dim 
+' 	VarDefn CurrentBlockTrade (As String)
+' Line #16:
+' 	Dim 
+' 	VarDefn РуфкеИуф (As String)
+' Line #17:
+' 	Dim 
+' 	VarDefn Data (As String)
+' Line #18:
+' 	Dim 
+' 	VarDefn Comment (As String)
+' Line #19:
+' 	Dim 
+' 	VarDefn _B_var_SLandTP (As String)
+' Line #20:
+' 	Dim 
+' 	VarDefn Туче (As String)
+' Line #21:
+' 	Dim 
+' 	VarDefn StopLimitAndTakeProfit (As String)
+' Line #22:
+' 	Dim 
+' 	VarDefn _B_var_CMid (As String)
+' Line #23:
+' 	Dim 
+' 	VarDefn _B_var_Length (As String)
+' Line #24:
+' 	Dim 
+' 	VarDefn SLandTP (As String)
+' Line #25:
+' 	Dim 
+' 	VarDefn S8_120_fixedSLTP (As String)
+' Line #26:
+' Line #27:
+' 	Dim 
+' 	VarDefn delta (As Double)
+' Line #28:
+' 	Dim 
+' 	VarDefn sl (As Double)
+' Line #29:
+' 	Dim 
+' 	VarDefn tp (As Double)
+' Line #30:
+' 	Dim 
+' 	VarDefn slip (As Double)
+' Line #31:
+' 	Dim 
+' 	VarDefn StopLimitPric (As Double)
+' Line #32:
+' 	Dim 
+' 	VarDefn Price (As Double)
+' Line #33:
+' 	Dim 
+' 	VarDefn TakeProfit (As Double)
+' Line #34:
+' 	Dim 
+' 	VarDefn TakeProfitPrice (As Double)
+' Line #35:
+' 	Dim 
+' 	VarDefn Offset (As Double)
+' Line #36:
+' 	Dim 
+' 	VarDefn _B_var_Offset (As Double)
+' Line #37:
+' 	Dim 
+' 	VarDefn Volume (As Double)
+' Line #38:
+' 	Dim 
+' 	VarDefn Б (As Double)
+' Line #39:
+' Line #40:
+' 	Dim 
+' 	VarDefn _B_var_msg
+' Line #41:
+' Line #42:
+' 	Dim 
+' 	VarDefn andStrategie
+' Line #43:
+' 	Dim 
+' 	VarDefn Sht_strategies
+' Line #44:
+' 	Dim 
+' 	VarDefn lastrowDeals
+' Line #45:
+' Line #46:
+' 	SetStmt 
+' 	LitStr 0x000A "strategies"
+' 	Ld strFileFullName 
+' 	ArgsMemLd Sheets 0x0001 
+' 	Set andStrategie 
+' Line #47:
+' 	SetStmt 
+' 	LitStr 0x0005 "deals"
+' 	Ld strFileFullName 
+' 	ArgsMemLd Sheets 0x0001 
+' 	Set Sht_strategies 
+' Line #48:
+' 	SetStmt 
+' 	LitStr 0x0006 "quotes"
+' 	Ld strFileFullName 
+' 	ArgsMemLd Sheets 0x0001 
+' 	Set lastrowDeals 
+' Line #49:
+' Line #50:
+' 	QuoteRem 0x0000 0x0016 "запись heartbeat в лог"
+' Line #51:
+' 	ArgsLd Time 0x0000 
+' 	LitDI2 0x0002 
+' 	ArgsLd Right 0x0002 
+' 	LitDI2 0x0037 
+' 	Ge 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x000A 
+' 	Ld lastrowDeals 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	ArgsLd Time 0x0000 
+' 	LitDI2 0x0005 
+' 	ArgsLd Left 0x0002 
+' 	Ne 
+' 	And 
+' 	IfBlock 
+' Line #52:
+' 	LitStr 0x000B "[HEARTBEAT]"
+' 	St Data 
+' Line #53:
+' 	Ld Data 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #54:
+' 	ArgsLd Time 0x0000 
+' 	LitDI2 0x0005 
+' 	ArgsLd Left 0x0002 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x000A 
+' 	Ld lastrowDeals 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemSt Value 
+' Line #55:
+' 	EndIfBlock 
+' Line #56:
+' Line #57:
+' 	QuoteRem 0x0000 0x0016 "разблокировка торговли"
+' Line #58:
+' 	ArgsLd Time 0x0000 
+' 	LitDI2 0x0002 
+' 	ArgsLd Right 0x0002 
+' 	LitDI2 0x0019 
+' 	Le 
+' 	IfBlock 
+' Line #59:
+' 	ArgsCall (Call) UnblockTrades 0x0000 
+' Line #60:
+' 	EndIfBlock 
+' Line #61:
+' Line #62:
+' 	QuoteRem 0x0000 0x0016 "проверка по стратегиям"
+' Line #63:
+' 	ArgsLd Time 0x0000 
+' 	LitDI2 0x0002 
+' 	ArgsLd Right 0x0002 
+' 	LitDI2 0x0037 
+' 	Ge 
+' 	IfBlock 
+' Line #64:
+' Line #65:
+' 	Ld xlUp 
+' 	Ld Rows 
+' 	MemLd Count 
+' 	LitDI2 0x0001 
+' 	Ld andStrategie 
+' 	ArgsMemLd Cells 0x0002 
+' 	ArgsMemLd End 0x0001 
+' 	MemLd Row 
+' 	St Sht_deals 
+' Line #66:
+' 	StartForVariable 
+' 	Ld i 
+' 	EndForVariable 
+' 	LitDI2 0x0002 
+' 	Ld Sht_deals 
+' 	For 
+' Line #67:
+' Line #68:
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	Ld andStrategie 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St Strategie 
+' Line #69:
+' 	Ld i 
+' 	LitDI2 0x0002 
+' 	Ld andStrategie 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St Sheet 
+' Line #70:
+' 	Ld i 
+' 	LitDI2 0x0003 
+' 	Ld andStrategie 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St SecCode 
+' Line #71:
+' 	Ld i 
+' 	LitDI2 0x0004 
+' 	Ld andStrategie 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St timeframe 
+' Line #72:
+' 	Ld i 
+' 	LitDI2 0x0005 
+' 	Ld andStrategie 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St delta 
+' Line #73:
+' 	Ld i 
+' 	LitDI2 0x0006 
+' 	Ld andStrategie 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St sl 
+' Line #74:
+' 	Ld i 
+' 	LitDI2 0x0007 
+' 	Ld andStrategie 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St tp 
+' Line #75:
+' 	Ld i 
+' 	LitDI2 0x0008 
+' 	Ld andStrategie 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St slip 
+' Line #76:
+' 	Ld i 
+' 	LitDI2 0x0009 
+' 	Ld andStrategie 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St Qty 
+' Line #77:
+' 	Ld i 
+' 	LitDI2 0x000A 
+' 	Ld andStrategie 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St CurrentPos 
+' Line #78:
+' 	Ld i 
+' 	LitDI2 0x000B 
+' 	Ld andStrategie 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St CurrentBlockTrade 
+' Line #79:
+' 	ArgsLd Time 0x0000 
+' 	LitDI2 0x0002 
+' 	ArgsLd Left 0x0002 
+' 	ArgsLd Time 0x0000 
+' 	LitDI2 0x0004 
+' 	LitDI2 0x0002 
+' 	ArgsLd Mid 0x0003 
+' 	Concat 
+' 	ArgsLd Time 0x0000 
+' 	LitDI2 0x0002 
+' 	ArgsLd Right 0x0002 
+' 	Concat 
+' 	St S8_120_fixedSLTP 
+' Line #80:
+' Line #81:
+' 	Ld Qty 
+' 	LitDI2 0x0000 
+' 	Gt 
+' 	IfBlock 
+' 	QuoteRem 0x0018 0x0017 "если стратегия включена"
+' Line #82:
+' Line #83:
+' 	LineCont 0x0004 10 00 10 00
+' 	Ld CurrentPos 
+' 	LitDI2 0x0000 
+' 	Eq 
+' 	Ld CurrentBlockTrade 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	And 
+' 	Ld Strategie 
+' 	LitStr 0x0003 "AR6"
+' 	Eq 
+' 	And 
+' 	Ld timeframe 
+' 	LitDI2 0x000F 
+' 	Eq 
+' 	And 
+' 	Ld S8_120_fixedSLTP 
+' 	LitDI4 0x97D0 0x0001 
+' 	Ge 
+' 	And 
+' 	Ld S8_120_fixedSLTP 
+' 	LitDI4 0xCAD8 0x0002 
+' 	Le 
+' 	And 
+' 	IfBlock 
+' Line #84:
+' 	Ld Sheet 
+' 	Ld strFileFullName 
+' 	ArgsMemLd Sheets 0x0001 
+' 	Ld SecCode 
+' 	Ld Qty 
+' 	Ld delta 
+' 	Ld sl 
+' 	Ld tp 
+' 	Ld slip 
+' 	Ld i 
+' 	ArgsCall (Call) _B_var_ANTIRS6_15 0x0008 
+' Line #85:
+' 	LitStr 0x0008 "[CHECK] "
+' 	Ld Strategie 
+' 	Concat 
+' 	LitStr 0x0001 " "
+' 	Concat 
+' 	Ld timeframe 
+' 	Concat 
+' 	LitStr 0x0003 "min"
+' 	Concat 
+' 	LitStr 0x0008 " Sheets("
+' 	Concat 
+' 	Ld Sheet 
+' 	Concat 
+' 	LitStr 0x000A ") SecCode="
+' 	Concat 
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x0005 " Qty="
+' 	Concat 
+' 	Ld Qty 
+' 	Concat 
+' 	LitStr 0x0007 " delta="
+' 	Concat 
+' 	Ld delta 
+' 	Concat 
+' 	LitStr 0x0004 " sl="
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0004 " tp="
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	LitStr 0x0006 " slip="
+' 	Concat 
+' 	Ld slip 
+' 	Concat 
+' 	St Data 
+' Line #86:
+' 	Ld Data 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #87:
+' 	EndIfBlock 
+' Line #88:
+' Line #89:
+' 	LineCont 0x0004 10 00 10 00
+' 	Ld CurrentPos 
+' 	LitDI2 0x0000 
+' 	Eq 
+' 	Ld CurrentBlockTrade 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	And 
+' 	Ld Strategie 
+' 	LitStr 0x0002 "S7"
+' 	Eq 
+' 	And 
+' 	Ld timeframe 
+' 	LitDI2 0x0078 
+' 	Eq 
+' 	And 
+' 	Ld S8_120_fixedSLTP 
+' 	LitDI4 0x5F90 0x0001 
+' 	Ge 
+' 	And 
+' 	Ld S8_120_fixedSLTP 
+' 	LitDI4 0xCAD8 0x0002 
+' 	Le 
+' 	And 
+' 	IfBlock 
+' Line #90:
+' 	Ld Sheet 
+' 	Ld strFileFullName 
+' 	ArgsMemLd Sheets 0x0001 
+' 	Ld SecCode 
+' 	Ld Qty 
+' 	Ld delta 
+' 	Ld sl 
+' 	Ld tp 
+' 	Ld slip 
+' 	Ld i 
+' 	ArgsCall (Call) h 0x0008 
+' Line #91:
+' 	LitStr 0x0008 "[CHECK] "
+' 	Ld Strategie 
+' 	Concat 
+' 	LitStr 0x0001 " "
+' 	Concat 
+' 	Ld timeframe 
+' 	Concat 
+' 	LitStr 0x0003 "min"
+' 	Concat 
+' 	LitStr 0x0008 " Sheets("
+' 	Concat 
+' 	Ld Sheet 
+' 	Concat 
+' 	LitStr 0x000A ") SecCode="
+' 	Concat 
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x0005 " Qty="
+' 	Concat 
+' 	Ld Qty 
+' 	Concat 
+' 	LitStr 0x0007 " delta="
+' 	Concat 
+' 	Ld delta 
+' 	Concat 
+' 	LitStr 0x0004 " sl="
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0004 " tp="
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	LitStr 0x0006 " slip="
+' 	Concat 
+' 	Ld slip 
+' 	Concat 
+' 	St Data 
+' Line #92:
+' 	Ld Data 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #93:
+' 	EndIfBlock 
+' Line #94:
+' Line #95:
+' 	LineCont 0x0004 10 00 10 00
+' 	Ld CurrentPos 
+' 	LitDI2 0x0000 
+' 	Eq 
+' 	Ld CurrentBlockTrade 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	And 
+' 	Ld Strategie 
+' 	LitStr 0x0002 "S7"
+' 	Eq 
+' 	And 
+' 	Ld timeframe 
+' 	LitDI2 0x00B4 
+' 	Eq 
+' 	And 
+' 	Ld S8_120_fixedSLTP 
+' 	LitDI4 0x5F90 0x0001 
+' 	Ge 
+' 	And 
+' 	Ld S8_120_fixedSLTP 
+' 	LitDI4 0xCAD8 0x0002 
+' 	Le 
+' 	And 
+' 	IfBlock 
+' Line #96:
+' 	Ld Sheet 
+' 	Ld strFileFullName 
+' 	ArgsMemLd Sheets 0x0001 
+' 	Ld SecCode 
+' 	Ld Qty 
+' 	Ld delta 
+' 	Ld sl 
+' 	Ld tp 
+' 	Ld slip 
+' 	Ld i 
+' 	ArgsCall (Call) _B_var_UpdateQty 0x0008 
+' Line #97:
+' 	LitStr 0x0008 "[CHECK] "
+' 	Ld Strategie 
+' 	Concat 
+' 	LitStr 0x0001 " "
+' 	Concat 
+' 	Ld timeframe 
+' 	Concat 
+' 	LitStr 0x0003 "min"
+' 	Concat 
+' 	LitStr 0x0008 " Sheets("
+' 	Concat 
+' 	Ld Sheet 
+' 	Concat 
+' 	LitStr 0x000A ") SecCode="
+' 	Concat 
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x0005 " Qty="
+' 	Concat 
+' 	Ld Qty 
+' 	Concat 
+' 	LitStr 0x0007 " delta="
+' 	Concat 
+' 	Ld delta 
+' 	Concat 
+' 	LitStr 0x0004 " sl="
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0004 " tp="
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	LitStr 0x0006 " slip="
+' 	Concat 
+' 	Ld slip 
+' 	Concat 
+' 	St Data 
+' Line #98:
+' 	Ld Data 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #99:
+' 	EndIfBlock 
+' Line #100:
+' Line #101:
+' 	Ld CurrentPos 
+' 	LitDI2 0x0000 
+' 	Eq 
+' 	Ld CurrentBlockTrade 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	And 
+' 	Ld Strategie 
+' 	LitStr 0x0002 "S8"
+' 	Eq 
+' 	And 
+' 	Ld timeframe 
+' 	LitDI2 0x0078 
+' 	Eq 
+' 	And 
+' 	IfBlock 
+' Line #102:
+' 	Ld Sheet 
+' 	Ld strFileFullName 
+' 	ArgsMemLd Sheets 0x0001 
+' 	Ld SecCode 
+' 	Ld Qty 
+' 	Ld delta 
+' 	Ld sl 
+' 	Ld tp 
+' 	Ld slip 
+' 	Ld i 
+' 	ArgsCall (Call) S8_120_fixSLTP 0x0008 
+' Line #103:
+' 	LitStr 0x0008 "[CHECK] "
+' 	Ld Strategie 
+' 	Concat 
+' 	LitStr 0x0001 " "
+' 	Concat 
+' 	Ld timeframe 
+' 	Concat 
+' 	LitStr 0x0003 "min"
+' 	Concat 
+' 	LitStr 0x0008 " Sheets("
+' 	Concat 
+' 	Ld Sheet 
+' 	Concat 
+' 	LitStr 0x000A ") SecCode="
+' 	Concat 
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x0005 " Qty="
+' 	Concat 
+' 	Ld Qty 
+' 	Concat 
+' 	LitStr 0x0007 " delta="
+' 	Concat 
+' 	Ld delta 
+' 	Concat 
+' 	LitStr 0x0004 " sl="
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0004 " tp="
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	LitStr 0x0006 " slip="
+' 	Concat 
+' 	Ld slip 
+' 	Concat 
+' 	St Data 
+' Line #104:
+' 	Ld Data 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #105:
+' 	EndIfBlock 
+' Line #106:
+' Line #107:
+' 	LineCont 0x0004 10 00 10 00
+' 	Ld CurrentPos 
+' 	LitDI2 0x0000 
+' 	Eq 
+' 	Ld CurrentBlockTrade 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	And 
+' 	Ld Strategie 
+' 	LitStr 0x0005 "Rs101"
+' 	Eq 
+' 	And 
+' 	Ld timeframe 
+' 	LitDI2 0x003C 
+' 	Eq 
+' 	And 
+' 	Ld S8_120_fixedSLTP 
+' 	LitDI4 0x5F90 0x0001 
+' 	Ge 
+' 	And 
+' 	Ld S8_120_fixedSLTP 
+' 	LitDI4 0xCAD8 0x0002 
+' 	Le 
+' 	And 
+' 	IfBlock 
+' Line #108:
+' 	Ld Sheet 
+' 	Ld strFileFullName 
+' 	ArgsMemLd Sheets 0x0001 
+' 	Ld SecCode 
+' 	Ld Qty 
+' 	Ld sl 
+' 	Ld delta 
+' 	ArgsCall (Call) GoldArray1h 0x0005 
+' Line #109:
+' 	LitStr 0x0008 "[CHECK] "
+' 	Ld Strategie 
+' 	Concat 
+' 	LitStr 0x0001 " "
+' 	Concat 
+' 	Ld timeframe 
+' 	Concat 
+' 	LitStr 0x0003 "min"
+' 	Concat 
+' 	LitStr 0x0008 " Sheets("
+' 	Concat 
+' 	Ld Sheet 
+' 	Concat 
+' 	LitStr 0x000A ") SecCode="
+' 	Concat 
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x0005 " Qty="
+' 	Concat 
+' 	Ld Qty 
+' 	Concat 
+' 	LitStr 0x0007 " delta="
+' 	Concat 
+' 	Ld delta 
+' 	Concat 
+' 	LitStr 0x0004 " sl="
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0004 " tp="
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	LitStr 0x0006 " slip="
+' 	Concat 
+' 	Ld slip 
+' 	Concat 
+' 	St Data 
+' Line #110:
+' 	Ld Data 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #111:
+' 	EndIfBlock 
+' Line #112:
+' Line #113:
+' 	LineCont 0x0004 0C 00 10 00
+' 	Ld CurrentPos 
+' 	LitDI2 0x0000 
+' 	Eq 
+' 	Ld CurrentBlockTrade 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	And 
+' 	Ld Strategie 
+' 	LitStr 0x0005 "Rs102"
+' 	Eq 
+' 	And 
+' 	Ld S8_120_fixedSLTP 
+' 	LitDI4 0x5F90 0x0001 
+' 	Ge 
+' 	And 
+' 	Ld S8_120_fixedSLTP 
+' 	LitDI4 0xCAD8 0x0002 
+' 	Le 
+' 	And 
+' 	IfBlock 
+' Line #114:
+' 	Ld Sheet 
+' 	Ld strFileFullName 
+' 	ArgsMemLd Sheets 0x0001 
+' 	Ld timeframe 
+' 	Ld SecCode 
+' 	Ld Qty 
+' 	Ld sl 
+' 	Ld tp 
+' 	ArgsCall (Call) Rs10 0x0006 
+' Line #115:
+' 	LitStr 0x0008 "[CHECK] "
+' 	Ld Strategie 
+' 	Concat 
+' 	LitStr 0x0001 " "
+' 	Concat 
+' 	Ld timeframe 
+' 	Concat 
+' 	LitStr 0x0003 "min"
+' 	Concat 
+' 	LitStr 0x0008 " Sheets("
+' 	Concat 
+' 	Ld Sheet 
+' 	Concat 
+' 	LitStr 0x000A ") SecCode="
+' 	Concat 
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x0005 " Qty="
+' 	Concat 
+' 	Ld Qty 
+' 	Concat 
+' 	LitStr 0x0007 " delta="
+' 	Concat 
+' 	Ld delta 
+' 	Concat 
+' 	LitStr 0x0004 " sl="
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0004 " tp="
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	LitStr 0x0006 " slip="
+' 	Concat 
+' 	Ld slip 
+' 	Concat 
+' 	St Data 
+' Line #116:
+' 	Ld Data 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #117:
+' 	EndIfBlock 
+' Line #118:
+' Line #119:
+' 	LineCont 0x0004 10 00 10 00
+' 	Ld CurrentPos 
+' 	LitDI2 0x0000 
+' 	Eq 
+' 	Ld CurrentBlockTrade 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	And 
+' 	Ld Strategie 
+' 	LitStr 0x0003 "RS7"
+' 	Eq 
+' 	And 
+' 	Ld timeframe 
+' 	LitDI2 0x0078 
+' 	Eq 
+' 	And 
+' 	Ld S8_120_fixedSLTP 
+' 	LitDI4 0x5F90 0x0001 
+' 	Ge 
+' 	And 
+' 	Ld S8_120_fixedSLTP 
+' 	LitDI4 0xCAD8 0x0002 
+' 	Le 
+' 	And 
+' 	IfBlock 
+' Line #120:
+' 	Ld Sheet 
+' 	Ld strFileFullName 
+' 	ArgsMemLd Sheets 0x0001 
+' 	Ld SecCode 
+' 	Ld Qty 
+' 	Ld delta 
+' 	Ld sl 
+' 	Ld tp 
+' 	Ld slip 
+' 	Ld i 
+' 	ArgsCall (Call) КS7_120 0x0008 
+' Line #121:
+' 	LitStr 0x0008 "[CHECK] "
+' 	Ld Strategie 
+' 	Concat 
+' 	LitStr 0x0001 " "
+' 	Concat 
+' 	Ld timeframe 
+' 	Concat 
+' 	LitStr 0x0003 "min"
+' 	Concat 
+' 	LitStr 0x0008 " Sheets("
+' 	Concat 
+' 	Ld Sheet 
+' 	Concat 
+' 	LitStr 0x000A ") SecCode="
+' 	Concat 
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x0005 " Qty="
+' 	Concat 
+' 	Ld Qty 
+' 	Concat 
+' 	LitStr 0x0007 " delta="
+' 	Concat 
+' 	Ld delta 
+' 	Concat 
+' 	LitStr 0x0004 " sl="
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0004 " tp="
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	LitStr 0x0006 " slip="
+' 	Concat 
+' 	Ld slip 
+' 	Concat 
+' 	St Data 
+' Line #122:
+' 	Ld Data 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #123:
+' 	EndIfBlock 
+' Line #124:
+' Line #125:
+' 	EndIfBlock 
+' Line #126:
+' Line #127:
+' 	StartForVariable 
+' 	Next 
+' Line #128:
+' 	EndIfBlock 
+' Line #129:
+' Line #130:
+' 	QuoteRem 0x0000 0x0016 "обработка новых сделок"
+' Line #131:
+' 	Ld xlUp 
+' 	Ld Rows 
+' 	MemLd Count 
+' 	LitDI2 0x0001 
+' 	Ld Sht_strategies 
+' 	ArgsMemLd Cells 0x0002 
+' 	ArgsMemLd End 0x0001 
+' 	MemLd Row 
+' 	St lastrowStrategies 
+' Line #132:
+' 	StartForVariable 
+' 	Ld i 
+' 	EndForVariable 
+' 	LitDI2 0x0002 
+' 	Ld lastrowStrategies 
+' 	For 
+' Line #133:
+' 	QuoteRem 0x0004 0x0046 "если сделка ещё не обработана, т.е. не установлена метка "x" на сделке"
+' Line #134:
+' 	Ld i 
+' 	LitDI2 0x0014 
+' 	Ld Sht_strategies 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	IfBlock 
+' Line #135:
+' 	QuoteRem 0x0008 0x0026 "запись в лог информации о новой сделке"
+' Line #136:
+' 	Ld i 
+' 	LitDI2 0x0004 
+' 	Ld Sht_strategies 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St _B_var_msg 
+' Line #137:
+' 	Ld i 
+' 	LitDI2 0x0005 
+' 	Ld Sht_strategies 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St SecCode 
+' Line #138:
+' 	Ld i 
+' 	LitDI2 0x000A 
+' 	Ld Sht_strategies 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St Comment 
+' Line #139:
+' 	LitStr 0x000A "[NEWDEAL] "
+' 	Ld _B_var_msg 
+' 	Concat 
+' 	LitStr 0x0001 " "
+' 	Concat 
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x0001 " "
+' 	Concat 
+' 	Ld Comment 
+' 	Concat 
+' 	St Data 
+' Line #140:
+' 	Ld Data 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #141:
+' Line #142:
+' 	Ld Comment 
+' 	LitDI2 0x0001 
+' 	ArgsLd Left 0x0002 
+' 	St Туче 
+' Line #143:
+' Line #144:
+' 	Ld i 
+' 	LitDI2 0x0008 
+' 	Ld Sht_strategies 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St _B_var_Offset 
+' Line #145:
+' 	Ld i 
+' 	LitDI2 0x0009 
+' 	Ld Sht_strategies 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St Qty 
+' Line #146:
+' 	Ld i 
+' 	LitDI2 0x000B 
+' 	Ld Sht_strategies 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St Volume 
+' Line #147:
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	Ld Sht_strategies 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St Б 
+' Line #148:
+' 	Ld Comment 
+' 	Ld Comment 
+' 	FnLen 
+' 	Ld Comment 
+' 	Ld Comment 
+' 	FnLen 
+' 	LitDI2 0x0002 
+' 	Sub 
+' 	ArgsLd Right 0x0002 
+' 	LitStr 0x0001 "-"
+' 	FnInStr 
+' 	Sub 
+' 	LitDI2 0x0002 
+' 	Sub 
+' 	ArgsLd Right 0x0002 
+' 	St _B_var_CMid 
+' Line #149:
+' 	Ld _B_var_CMid 
+' 	Ld _B_var_CMid 
+' 	LitStr 0x0001 "-"
+' 	FnInStr 
+' 	LitDI2 0x0001 
+' 	Add 
+' 	ArgsLd Mid 0x0002 
+' 	St _B_var_Length 
+' Line #150:
+' 	Ld _B_var_Length 
+' 	Ld _B_var_Length 
+' 	LitStr 0x0001 "-"
+' 	FnInStr 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	ArgsLd Left 0x0002 
+' 	Coerce (Dbl) 
+' 	St sl 
+' Line #151:
+' 	Ld _B_var_Length 
+' 	Ld _B_var_Length 
+' 	LitStr 0x0001 "-"
+' 	FnInStr 
+' 	LitDI2 0x0001 
+' 	Add 
+' 	ArgsLd Mid 0x0002 
+' 	Coerce (Dbl) 
+' 	St tp 
+' Line #152:
+' 	Ld Comment 
+' 	LitDI2 0x0003 
+' 	ArgsLd Mid 0x0002 
+' 	St _B_var_SLandTP 
+' Line #153:
+' 	Ld _B_var_SLandTP 
+' 	LitDI2 0x0001 
+' 	Ld _B_var_SLandTP 
+' 	LitStr 0x0001 "_"
+' 	FnInStr 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	ArgsLd Mid 0x0003 
+' 	St Strategie 
+' Line #154:
+' 	Ld _B_var_SLandTP 
+' 	Ld _B_var_SLandTP 
+' 	LitStr 0x0001 "_"
+' 	FnInStr 
+' 	LitDI2 0x0001 
+' 	Add 
+' 	Ld _B_var_SLandTP 
+' 	LitStr 0x0001 "-"
+' 	FnInStr 
+' 	Ld _B_var_SLandTP 
+' 	LitStr 0x0001 "_"
+' 	FnInStr 
+' 	Sub 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	ArgsLd Mid 0x0003 
+' 	St timeframe 
+' Line #155:
+' 	Ld _B_var_CMid 
+' 	Ld _B_var_CMid 
+' 	LitStr 0x0001 "-"
+' 	FnInStr 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	ArgsLd Left 0x0002 
+' 	St delta 
+' Line #156:
+' Line #157:
+' Line #158:
+' 	QuoteRem 0x0008 0x0074 "если была сделка открытия позиции, т.е. в комментарии префикс "o", то выставляем стоп-лосс и тейк-профит на закрытие"
+' Line #159:
+' 	Ld Туче 
+' 	LitStr 0x0001 "o"
+' 	Eq 
+' 	IfBlock 
+' Line #160:
+' Line #161:
+' 	QuoteRem 0x000C 0x004D "подготовка переменных для транзакции на выставление стоп-лосса и тейк-профита"
+' Line #162:
+' 	LitDI2 0x0000 
+' 	St TakeProfitPrice 
+' Line #163:
+' 	LitR8 0x0000 0x0000 0x0000 0x3FE0 
+' 	St Offset 
+' Line #164:
+' 	LitStr 0x0001 "c"
+' 	Ld Comment 
+' 	Ld Comment 
+' 	FnLen 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	ArgsLd Right 0x0002 
+' 	Concat 
+' 	St Comment 
+' Line #165:
+' Line #166:
+' 	Ld i 
+' 	LitDI2 0x0006 
+' 	Ld Sht_strategies 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0005 "Купля"
+' 	Eq 
+' 	IfBlock 
+' Line #167:
+' 	LitStr 0x0001 "S"
+' 	St StopLimitAndTakeProfit 
+' Line #168:
+' Line #169:
+' 	QuoteRem 0x0010 0x003D "увеличение позиции, т.е. увеличиваем Pos на Qty из-за покупки"
+' Line #170:
+' 	Ld Strategie 
+' 	Ld SecCode 
+' 	Ld timeframe 
+' 	Ld delta 
+' 	Ld sl 
+' 	Ld tp 
+' 	Ld Qty 
+' 	Ld Volume 
+' 	Ld Б 
+' 	ArgsCall (Call) SubComment 0x0009 
+' Line #171:
+' 	QuoteRem 0x0010 0x0046 "Call UpdatePosWithoutTP(Strategie, SecCode, timeframe, delta, sl, Qty)"
+' Line #172:
+' Line #173:
+' 	Ld _B_var_Offset 
+' 	Ld sl 
+' 	Sub 
+' 	St StopLimitPric 
+' Line #174:
+' 	Ld _B_var_Offset 
+' 	Ld sl 
+' 	Sub 
+' 	Ld sl 
+' 	Sub 
+' 	St Price 
+' Line #175:
+' 	Ld _B_var_Offset 
+' 	Ld tp 
+' 	Add 
+' 	St TakeProfit 
+' Line #176:
+' Line #177:
+' 	Ld SecCode 
+' 	Ld Qty 
+' 	Ld StopLimitAndTakeProfit 
+' 	Ld StopLimitPric 
+' 	Ld Price 
+' 	Ld TakeProfit 
+' 	Ld TakeProfitPrice 
+' 	Ld Offset 
+' 	Ld Comment 
+' 	ArgsCall (Call) StopLimitAndTake 0x0009 
+' Line #178:
+' 	EndIfBlock 
+' Line #179:
+' Line #180:
+' 	Ld i 
+' 	LitDI2 0x0006 
+' 	Ld Sht_strategies 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0007 "Продажа"
+' 	Eq 
+' 	IfBlock 
+' Line #181:
+' 	LitStr 0x0001 "B"
+' 	St StopLimitAndTakeProfit 
+' Line #182:
+' Line #183:
+' 	QuoteRem 0x0010 0x003B "уменьшение позиции, т.е. уменьшаем Pos на Qty из-за продажи"
+' Line #184:
+' 	Ld Strategie 
+' 	Ld SecCode 
+' 	Ld timeframe 
+' 	Ld delta 
+' 	Ld sl 
+' 	Ld tp 
+' 	Ld Qty 
+' 	UMi 
+' 	Ld Volume 
+' 	Ld Б 
+' 	ArgsCall (Call) SubComment 0x0009 
+' Line #185:
+' 	QuoteRem 0x0010 0x0047 "Call UpdatePosWithoutTP(Strategie, SecCode, timeframe, delta, sl, -Qty)"
+' Line #186:
+' Line #187:
+' 	Ld _B_var_Offset 
+' 	Ld sl 
+' 	Add 
+' 	St StopLimitPric 
+' Line #188:
+' 	Ld _B_var_Offset 
+' 	Ld sl 
+' 	Add 
+' 	Ld sl 
+' 	Add 
+' 	St Price 
+' Line #189:
+' 	Ld _B_var_Offset 
+' 	Ld tp 
+' 	Sub 
+' 	St TakeProfit 
+' Line #190:
+' Line #191:
+' 	Ld SecCode 
+' 	Ld Qty 
+' 	Ld StopLimitAndTakeProfit 
+' 	Ld StopLimitPric 
+' 	Ld Price 
+' 	Ld TakeProfit 
+' 	Ld TakeProfitPrice 
+' 	Ld Offset 
+' 	Ld Comment 
+' 	ArgsCall (Call) StopLimitAndTake 0x0009 
+' Line #192:
+' 	EndIfBlock 
+' Line #193:
+' 	EndIfBlock 
+' Line #194:
+' Line #195:
+' 	Ld Туче 
+' 	LitStr 0x0001 "c"
+' 	Eq 
+' 	IfBlock 
+' Line #196:
+' 	Ld i 
+' 	LitDI2 0x0006 
+' 	Ld Sht_strategies 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0005 "Купля"
+' 	Eq 
+' 	IfBlock 
+' Line #197:
+' 	Ld Strategie 
+' 	Ld SecCode 
+' 	Ld timeframe 
+' 	Ld delta 
+' 	Ld sl 
+' 	Ld tp 
+' 	Ld Qty 
+' 	Ld Volume 
+' 	Ld Б 
+' 	ArgsCall (Call) SubComment 0x0009 
+' Line #198:
+' 	EndIfBlock 
+' Line #199:
+' 	Ld i 
+' 	LitDI2 0x0006 
+' 	Ld Sht_strategies 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0007 "Продажа"
+' 	Eq 
+' 	IfBlock 
+' Line #200:
+' 	Ld Strategie 
+' 	Ld SecCode 
+' 	Ld timeframe 
+' 	Ld delta 
+' 	Ld sl 
+' 	Ld tp 
+' 	Ld Qty 
+' 	UMi 
+' 	Ld Volume 
+' 	Ld Б 
+' 	ArgsCall (Call) SubComment 0x0009 
+' Line #201:
+' 	EndIfBlock 
+' Line #202:
+' 	EndIfBlock 
+' Line #203:
+' Line #204:
+' 	QuoteRem 0x0008 0x0023 "ставим метку, что сделка обработана"
+' Line #205:
+' 	LitStr 0x0001 "x"
+' 	Ld i 
+' 	LitDI2 0x0014 
+' 	Ld Sht_strategies 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemSt Value 
+' Line #206:
+' 	EndIfBlock 
+' Line #207:
+' 	StartForVariable 
+' 	Next 
+' Line #208:
+' Line #209:
+' 	EndSub 
+' Line #210:
+' Line #211:
+' Line #212:
+' Line #213:
+' Line #214:
+' Line #215:
+' Line #216:
+' Line #217:
+' Line #218:
+' Line #219:
+' Line #220:
+' Line #221:
+' VBA/br_30min_strat3 - 3669 bytes
+' Line #0:
+' 	FuncDefn (Sub br_30min_strat3())
+' Line #1:
+' 	StartWithExpr 
+' 	LitStr 0x0002 "br"
+' 	ArgsLd Sheets 0x0001 
+' 	With 
+' Line #2:
+' Line #3:
+' 	LitStr 0x0004 "BRG4"
+' 	St SecCode 
+' Line #4:
+' 	LitDI2 0x0001 
+' 	St Quantity 
+' Line #5:
+' Line #6:
+' 	LineCont 0x0014 13 00 04 00 26 00 04 00 38 00 04 00 4A 00 04 00 5C 00 04 00
+' 	Ld Time 
+' 	LitDI2 0x0002 
+' 	ArgsLd Left 0x0002 
+' 	LitDI2 0x000A 
+' 	Ge 
+' 	Ld Time 
+' 	LitDI2 0x0002 
+' 	ArgsLd Left 0x0002 
+' 	LitDI2 0x0010 
+' 	Le 
+' 	And 
+' 	Ld Time 
+' 	LitDI2 0x0005 
+' 	ArgsLd Right 0x0002 
+' 	LitStr 0x0005 "59:50"
+' 	Eq 
+' 	Ld Time 
+' 	LitDI2 0x0005 
+' 	ArgsLd Right 0x0002 
+' 	LitStr 0x0005 "29:50"
+' 	Eq 
+' 	Or 
+' 	Ld Time 
+' 	LitDI2 0x0005 
+' 	ArgsLd Right 0x0002 
+' 	LitStr 0x0005 "59:51"
+' 	Eq 
+' 	Or 
+' 	Ld Time 
+' 	LitDI2 0x0005 
+' 	ArgsLd Right 0x0002 
+' 	LitStr 0x0005 "29:51"
+' 	Eq 
+' 	Or 
+' 	Ld Time 
+' 	LitDI2 0x0005 
+' 	ArgsLd Right 0x0002 
+' 	LitStr 0x0005 "59:52"
+' 	Eq 
+' 	Or 
+' 	Ld Time 
+' 	LitDI2 0x0005 
+' 	ArgsLd Right 0x0002 
+' 	LitStr 0x0005 "29:52"
+' 	Eq 
+' 	Or 
+' 	Ld Time 
+' 	LitDI2 0x0005 
+' 	ArgsLd Right 0x0002 
+' 	LitStr 0x0005 "59:53"
+' 	Eq 
+' 	Or 
+' 	Ld Time 
+' 	LitDI2 0x0005 
+' 	ArgsLd Right 0x0002 
+' 	LitStr 0x0005 "29:53"
+' 	Eq 
+' 	Or 
+' 	Ld Time 
+' 	LitDI2 0x0005 
+' 	ArgsLd Right 0x0002 
+' 	LitStr 0x0005 "59:54"
+' 	Eq 
+' 	Or 
+' 	Ld Time 
+' 	LitDI2 0x0005 
+' 	ArgsLd Right 0x0002 
+' 	LitStr 0x0005 "29:54"
+' 	Eq 
+' 	Or 
+' 	Paren 
+' 	And 
+' 	IfBlock 
+' Line #7:
+' Line #8:
+' 	QuoteRem 0x0008 0x000B "long strat3"
+' Line #9:
+' 	LineCont 0x0018 15 00 0C 00 29 00 0C 00 3D 00 0C 00 53 00 0C 00 67 00 0C 00 7D 00 0C 00
+' 	LitDI2 0x0004 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0004 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Gt 
+' 	LitDI2 0x0003 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0003 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Gt 
+' 	And 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0003 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ge 
+' 	And 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0003 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Sub 
+' 	LitR8 0x999A 0x9999 0x9999 0x3FB9 
+' 	Lt 
+' 	And 
+' 	LitDI2 0x0003 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ge 
+' 	And 
+' 	LitDI2 0x0003 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Sub 
+' 	LitR8 0x999A 0x9999 0x9999 0x3FA9 
+' 	Le 
+' 	And 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0009 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	And 
+' 	IfBlock 
+' Line #10:
+' 	LitStr 0x0001 "x"
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0009 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' 	QuoteRem 0x002D 0x0024 "блокируем повторное открытие позиции"
+' Line #11:
+' 	LitStr 0x0026 "long strat3 .Cells(2, 9).Value = ''x''"
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #12:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitR8 0x0000 0x0000 0x0000 0x3FE0 
+' 	Add 
+' 	St Pricebuy 
+' 	QuoteRem 0x0038 0x0039 "увеличиваем цену покупку, чтобы наверняка войти в позицию"
+' Line #13:
+' 	Ld SecCode 
+' 	Ld Pricebuy 
+' 	Ld Quantity 
+' 	LitR8 0x999A 0x9999 0x9999 0x3FD9 
+' 	LitR8 0x0000 0x0000 0x0000 0x3FD0 
+' 	LitStr 0x0008 "o-strat3"
+' 	ArgsCall (Call) BuyLimit 0x0006 
+' Line #14:
+' 	EndIfBlock 
+' Line #15:
+' Line #16:
+' 	QuoteRem 0x0008 0x000C "short strat3"
+' Line #17:
+' 	LineCont 0x0018 15 00 0C 00 29 00 0C 00 3D 00 0C 00 53 00 0C 00 67 00 0C 00 7D 00 0C 00
+' 	LitDI2 0x0004 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0004 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Lt 
+' 	LitDI2 0x0003 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0003 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Lt 
+' 	And 
+' 	LitDI2 0x0003 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ge 
+' 	And 
+' 	LitDI2 0x0003 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Sub 
+' 	LitR8 0x999A 0x9999 0x9999 0x3FB9 
+' 	Lt 
+' 	And 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0003 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ge 
+' 	And 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0003 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Sub 
+' 	LitR8 0x999A 0x9999 0x9999 0x3FA9 
+' 	Le 
+' 	And 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0009 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	And 
+' 	IfBlock 
+' Line #18:
+' 	LitStr 0x0001 "x"
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0009 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' 	QuoteRem 0x002D 0x0024 "блокируем повторное открытие позиции"
+' Line #19:
+' 	LitStr 0x0027 "short strat3 .Cells(2, 9).Value = ''x''"
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #20:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitR8 0x0000 0x0000 0x0000 0x3FE0 
+' 	Sub 
+' 	St Pricesell 
+' 	QuoteRem 0x0039 0x0037 "уменьшаем цену продажи, чтобы наверняка войти в позицию"
+' Line #21:
+' 	Ld SecCode 
+' 	Ld Pricesell 
+' 	Ld Quantity 
+' 	LitR8 0x999A 0x9999 0x9999 0x3FD9 
+' 	LitR8 0x0000 0x0000 0x0000 0x3FD0 
+' 	LitStr 0x0008 "o-strat3"
+' 	ArgsCall (Call) SellLimit 0x0006 
+' Line #22:
+' 	EndIfBlock 
+' Line #23:
+' Line #24:
+' 	EndIfBlock 
+' Line #25:
+' Line #26:
+' 	EndWith 
+' Line #27:
+' 	EndSub 
+' Line #28:
+' Line #29:
+' VBA/SupportFunctions - 30918 bytes
+' Line #0:
+' 	Option  (Explicit)
+' Line #1:
+' 	FuncDefn (Public Function BlockTrade(Strategie As String))
+' Line #2:
+' Line #3:
+' 	Dim 
+' 	VarDefn lastrow (As Integer)
+' Line #4:
+' 	Dim 
+' 	VarDefn m (As Byte)
+' Line #5:
+' 	Dim 
+' 	VarDefn i (As Byte)
+' Line #6:
+' Line #7:
+' 	StartWithExpr 
+' 	LitStr 0x000A "strategies"
+' 	Ld strFileFullName 
+' 	ArgsMemLd Sheets 0x0001 
+' 	With 
+' Line #8:
+' Line #9:
+' 	Ld xlUp 
+' 	Ld Rows 
+' 	MemLd Count 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	ArgsMemLd End 0x0001 
+' 	MemLd Row 
+' 	St lastrow 
+' Line #10:
+' Line #11:
+' 	LitDI2 0x0000 
+' 	St m 
+' 	QuoteRem 0x0006 0x001E "триггер, что стратегия найдена"
+' Line #12:
+' 	LitDI2 0x0002 
+' 	St i 
+' Line #13:
+' 	Ld i 
+' 	Ld lastrow 
+' 	Le 
+' 	Ld m 
+' 	LitDI2 0x0000 
+' 	Eq 
+' 	And 
+' 	While 
+' Line #14:
+' 	LineCont 0x0014 0C 00 04 00 18 00 04 00 24 00 04 00 30 00 04 00 3C 00 04 00
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld Strategie 
+' 	Eq 
+' 	Ld i 
+' 	LitDI2 0x0003 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld SecCode 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld timeframe 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0005 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld delta 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0006 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld sl 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld tp 
+' 	Eq 
+' 	And 
+' 	IfBlock 
+' Line #15:
+' 	LitStr 0x0001 "x"
+' 	Ld i 
+' 	LitDI2 0x000B 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #16:
+' 	LitStr 0x000C "BlockTrade: "
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	LitStr 0x0009 " SecCode="
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x0003 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	LitStr 0x000B " timeframe="
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	LitStr 0x0007 " delta="
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x0005 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	LitStr 0x0004 " sl="
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x0006 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	LitStr 0x0004 " tp="
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #17:
+' 	LitDI2 0x0001 
+' 	St m 
+' Line #18:
+' 	EndIfBlock 
+' Line #19:
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	Add 
+' 	St i 
+' Line #20:
+' 	Wend 
+' Line #21:
+' Line #22:
+' 	EndWith 
+' Line #23:
+' 	EndFunc 
+' Line #24:
+' Line #25:
+' 	FuncDefn (Public Function UnblockTrades())
+' Line #26:
+' Line #27:
+' 	Dim 
+' 	VarDefn lastrow (As Integer)
+' Line #28:
+' 	Dim 
+' 	VarDefn i (As Byte)
+' Line #29:
+' Line #30:
+' 	StartWithExpr 
+' 	LitStr 0x000A "strategies"
+' 	Ld strFileFullName 
+' 	ArgsMemLd Sheets 0x0001 
+' 	With 
+' Line #31:
+' Line #32:
+' 	Ld xlUp 
+' 	Ld Rows 
+' 	MemLd Count 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	ArgsMemLd End 0x0001 
+' 	MemLd Row 
+' 	St lastrow 
+' Line #33:
+' Line #34:
+' 	StartForVariable 
+' 	Ld i 
+' 	EndForVariable 
+' 	LitDI2 0x0002 
+' 	Ld lastrow 
+' 	For 
+' Line #35:
+' 	Ld i 
+' 	LitDI2 0x000B 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0001 "x"
+' 	Eq 
+' 	IfBlock 
+' Line #36:
+' 	LitStr 0x0000 ""
+' 	Ld i 
+' 	LitDI2 0x000B 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #37:
+' 	LitStr 0x000F "UnblockTrades: "
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	LitStr 0x0009 " SecCode="
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x0003 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	LitStr 0x000B " timeframe="
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	LitStr 0x0007 " delta="
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x0005 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	LitStr 0x0004 " sl="
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x0006 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	LitStr 0x0004 " tp="
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #38:
+' 	EndIfBlock 
+' Line #39:
+' 	StartForVariable 
+' 	Next 
+' Line #40:
+' Line #41:
+' 	EndWith 
+' Line #42:
+' 	EndFunc 
+' Line #43:
+' Line #44:
+' 	FuncDefn (Public Function Get3Candles15min(ByVal sht As ) As Variant)
+' Line #45:
+' Line #46:
+' 	Dim 
+' 	OptionBase 
+' 	LitDI2 0x0002 
+' 	OptionBase 
+' 	LitDI2 0x0003 
+' 	VarDefn ArrayOf3Candles
+' Line #47:
+' 	Ld ArrayOf3Candles 
+' 	Erase 0x0001 
+' Line #48:
+' Line #49:
+' 	QuoteRem 0x0000 0x0025 "запись в массив параметров I-ой свечи"
+' Line #50:
+' 	LitStr 0x0003 "D46"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0000 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #51:
+' 	LitStr 0x0007 "E32:E46"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	Ld WorksheetFunction 
+' 	ArgsMemLd Max 0x0001 
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0001 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #52:
+' 	LitStr 0x0007 "F32:F46"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	Ld WorksheetFunction 
+' 	ArgsMemLd Min 0x0001 
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0002 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #53:
+' 	LitStr 0x0003 "G32"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0003 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #54:
+' Line #55:
+' 	QuoteRem 0x0000 0x0026 "запись в массив параметров II-ой свечи"
+' Line #56:
+' 	LitStr 0x0003 "D31"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0000 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #57:
+' 	LitStr 0x0007 "E17:E31"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	Ld WorksheetFunction 
+' 	ArgsMemLd Max 0x0001 
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0001 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #58:
+' 	LitStr 0x0007 "F17:F31"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	Ld WorksheetFunction 
+' 	ArgsMemLd Min 0x0001 
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0002 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #59:
+' 	LitStr 0x0003 "G17"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0003 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #60:
+' Line #61:
+' 	QuoteRem 0x0000 0x0027 "запись в массив параметров III-ой свечи"
+' Line #62:
+' 	LitStr 0x0003 "D16"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0000 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #63:
+' 	LitStr 0x0006 "E2:E16"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	Ld WorksheetFunction 
+' 	ArgsMemLd Max 0x0001 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0001 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #64:
+' 	LitStr 0x0006 "F2:F16"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	Ld WorksheetFunction 
+' 	ArgsMemLd Min 0x0001 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0002 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #65:
+' 	LitStr 0x0002 "G2"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0003 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #66:
+' Line #67:
+' 	Ld ArrayOf3Candles 
+' 	St Get3Candles15min 
+' Line #68:
+' Line #69:
+' 	EndFunc 
+' Line #70:
+' Line #71:
+' Line #72:
+' 	FuncDefn (Public Function SubComment(Strategie As String))
+' Line #73:
+' Line #74:
+' 	Dim 
+' 	VarDefn lastrow (As Integer)
+' Line #75:
+' 	Dim 
+' 	VarDefn m (As Byte)
+' Line #76:
+' 	Dim 
+' 	VarDefn i (As Byte)
+' Line #77:
+' Line #78:
+' 	Dim 
+' 	VarDefn Data (As String)
+' Line #79:
+' Line #80:
+' 	StartWithExpr 
+' 	LitStr 0x000A "strategies"
+' 	Ld strFileFullName 
+' 	ArgsMemLd Sheets 0x0001 
+' 	With 
+' Line #81:
+' Line #82:
+' 	Ld xlUp 
+' 	Ld Rows 
+' 	MemLd Count 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	ArgsMemLd End 0x0001 
+' 	MemLd Row 
+' 	St lastrow 
+' Line #83:
+' 	QuoteRem 0x0000 0x0022 "Call Logging("lastrow=" & lastrow)"
+' Line #84:
+' Line #85:
+' 	LitDI2 0x0000 
+' 	St m 
+' 	QuoteRem 0x0006 0x001E "триггер, что стратегия найдена"
+' Line #86:
+' 	LitDI2 0x0002 
+' 	St i 
+' Line #87:
+' 	Ld i 
+' 	Ld lastrow 
+' 	Le 
+' 	Ld m 
+' 	LitDI2 0x0000 
+' 	Eq 
+' 	And 
+' 	While 
+' Line #88:
+' 	QuoteRem 0x0000 0x00A6 "Call Logging("[UPDATEPOS] Strategie=" & Strategie & " SecCode=" & SecCode & " timeframe=" & timeframe & " delta=" & delta & " sl=" & sl & " tp=" & tp & " Qty=" & Qty)"
+' Line #89:
+' 	LineCont 0x0018 0C 00 04 00 18 00 04 00 24 00 04 00 30 00 04 00 3C 00 04 00 48 00 04 00
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld Strategie 
+' 	Eq 
+' 	Ld i 
+' 	LitDI2 0x0003 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld SecCode 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld timeframe 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0005 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld delta 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0006 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld sl 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld tp 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0000 
+' 	Ne 
+' 	And 
+' 	IfBlock 
+' Line #90:
+' Line #91:
+' 	LitStr 0x000A "[LASTPOS] "
+' 	Ld Strategie 
+' 	Concat 
+' 	LitStr 0x0001 " "
+' 	Concat 
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x000B " timeframe="
+' 	Concat 
+' 	Ld timeframe 
+' 	Concat 
+' 	LitStr 0x0007 " delta="
+' 	Concat 
+' 	Ld delta 
+' 	Concat 
+' 	LitStr 0x0004 " sl="
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0004 " tp="
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	LitStr 0x0009 " LastPos="
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x000A 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	LitStr 0x0003 " i="
+' 	Concat 
+' 	Ld i 
+' 	Concat 
+' 	St Data 
+' Line #92:
+' 	Ld Data 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #93:
+' Line #94:
+' 	Ld i 
+' 	LitDI2 0x000A 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld Qty 
+' 	Add 
+' 	Ld i 
+' 	LitDI2 0x000A 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #95:
+' Line #96:
+' 	LitStr 0x000C "[UPDATEPOS] "
+' 	Ld Strategie 
+' 	Concat 
+' 	LitStr 0x0001 " "
+' 	Concat 
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x000B " timeframe="
+' 	Concat 
+' 	Ld timeframe 
+' 	Concat 
+' 	LitStr 0x0007 " delta="
+' 	Concat 
+' 	Ld delta 
+' 	Concat 
+' 	LitStr 0x0004 " sl="
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0004 " tp="
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	LitStr 0x0005 " Qty="
+' 	Concat 
+' 	Ld Qty 
+' 	Concat 
+' 	St Data 
+' Line #97:
+' 	Ld Data 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #98:
+' Line #99:
+' 	LitStr 0x0009 "[NEWPOS] "
+' 	Ld Strategie 
+' 	Concat 
+' 	LitStr 0x0001 " "
+' 	Concat 
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x000B " timeframe="
+' 	Concat 
+' 	Ld timeframe 
+' 	Concat 
+' 	LitStr 0x0007 " delta="
+' 	Concat 
+' 	Ld delta 
+' 	Concat 
+' 	LitStr 0x0004 " sl="
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0004 " tp="
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	LitStr 0x0008 " NewPos="
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x000A 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	LitStr 0x0003 " i="
+' 	Concat 
+' 	Ld i 
+' 	Concat 
+' 	St Data 
+' Line #100:
+' 	Ld Data 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #101:
+' Line #102:
+' 	QuoteRem 0x0008 0x0018 "обработка сделки покупки"
+' Line #103:
+' 	Ld Qty 
+' 	LitDI2 0x0000 
+' 	Gt 
+' 	IfBlock 
+' Line #104:
+' 	Ld i 
+' 	LitDI2 0x0011 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld Volume 
+' 	Sub 
+' 	Ld i 
+' 	LitDI2 0x0011 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #105:
+' 	Ld i 
+' 	LitDI2 0x0012 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld Б 
+' 	Add 
+' 	Ld i 
+' 	LitDI2 0x0012 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #106:
+' 	Ld i 
+' 	LitDI2 0x0013 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0001 
+' 	Ld Qty 
+' 	FnAbs 
+' 	Mul 
+' 	Add 
+' 	Ld i 
+' 	LitDI2 0x0013 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' 	QuoteRem 0x0041 0x0010 "комиссия брокера"
+' Line #107:
+' 	EndIfBlock 
+' Line #108:
+' Line #109:
+' 	QuoteRem 0x0008 0x0018 "обработка сделки продажи"
+' Line #110:
+' 	Ld Qty 
+' 	LitDI2 0x0000 
+' 	Lt 
+' 	IfBlock 
+' Line #111:
+' 	Ld i 
+' 	LitDI2 0x0011 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld Volume 
+' 	Add 
+' 	Ld i 
+' 	LitDI2 0x0011 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #112:
+' 	Ld i 
+' 	LitDI2 0x0012 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld Б 
+' 	Add 
+' 	Ld i 
+' 	LitDI2 0x0012 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #113:
+' 	Ld i 
+' 	LitDI2 0x0013 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0001 
+' 	Ld Qty 
+' 	FnAbs 
+' 	Mul 
+' 	Add 
+' 	Ld i 
+' 	LitDI2 0x0013 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' 	QuoteRem 0x0041 0x0010 "комиссия брокера"
+' Line #114:
+' 	EndIfBlock 
+' Line #115:
+' Line #116:
+' 	QuoteRem 0x0008 0x0015 "есть открытая позиция"
+' Line #117:
+' 	Ld i 
+' 	LitDI2 0x000A 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0000 
+' 	Ne 
+' 	IfBlock 
+' Line #118:
+' 	LitStr 0x0000 ""
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #119:
+' 	LitStr 0x0000 ""
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #120:
+' 	LitStr 0x0000 ""
+' 	Ld i 
+' 	LitDI2 0x000E 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #121:
+' 	LitStr 0x0000 ""
+' 	Ld i 
+' 	LitDI2 0x000F 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #122:
+' 	EndIfBlock 
+' Line #123:
+' Line #124:
+' 	LitDI2 0x0001 
+' 	St m 
+' Line #125:
+' 	EndIfBlock 
+' Line #126:
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	Add 
+' 	St i 
+' Line #127:
+' 	Wend 
+' Line #128:
+' Line #129:
+' 	QuoteRem 0x0000 0x0050 "если не обнаружена стратегия с нужным tp, то ищем среди стратегий с плавающим tp"
+' Line #130:
+' 	Ld m 
+' 	LitDI2 0x0000 
+' 	Eq 
+' 	IfBlock 
+' Line #131:
+' 	Ld Strategie 
+' 	Ld SecCode 
+' 	Ld timeframe 
+' 	Ld delta 
+' 	Ld sl 
+' 	Ld Qty 
+' 	Ld Volume 
+' 	Ld Б 
+' 	ArgsCall (Call) UpdatePosWithof 0x0008 
+' Line #132:
+' 	EndIfBlock 
+' Line #133:
+' Line #134:
+' 	EndWith 
+' Line #135:
+' 	EndFunc 
+' Line #136:
+' Line #137:
+' 	FuncDefn (Public Function UpdatePosWithof(Strategie As String))
+' Line #138:
+' Line #139:
+' 	Dim 
+' 	VarDefn lastrow (As Integer)
+' Line #140:
+' Line #141:
+' 	Dim 
+' 	VarDefn m (As Byte)
+' Line #142:
+' 	Dim 
+' 	VarDefn i (As Byte)
+' Line #143:
+' 	Dim 
+' 	VarDefn tp (As Double)
+' Line #144:
+' Line #145:
+' 	Dim 
+' 	VarDefn Data (As String)
+' Line #146:
+' Line #147:
+' 	StartWithExpr 
+' 	LitStr 0x000A "strategies"
+' 	Ld strFileFullName 
+' 	ArgsMemLd Sheets 0x0001 
+' 	With 
+' Line #148:
+' Line #149:
+' 	Ld xlUp 
+' 	Ld Rows 
+' 	MemLd Count 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	ArgsMemLd End 0x0001 
+' 	MemLd Row 
+' 	St lastrow 
+' Line #150:
+' 	QuoteRem 0x0000 0x0022 "Call Logging("lastrow=" & lastrow)"
+' Line #151:
+' Line #152:
+' 	LitDI2 0x0000 
+' 	St m 
+' 	QuoteRem 0x0006 0x001E "триггер, что стратегия найдена"
+' Line #153:
+' 	LitDI2 0x0002 
+' 	St i 
+' Line #154:
+' 	Ld i 
+' 	Ld lastrow 
+' 	Le 
+' 	Ld m 
+' 	LitDI2 0x0000 
+' 	Eq 
+' 	And 
+' 	While 
+' Line #155:
+' 	QuoteRem 0x0000 0x00A6 "Call Logging("[UPDATEPOS] Strategie=" & Strategie & " SecCode=" & SecCode & " timeframe=" & timeframe & " delta=" & delta & " sl=" & sl & " tp=" & tp & " Qty=" & Qty)"
+' Line #156:
+' 	LineCont 0x0014 0C 00 04 00 18 00 04 00 24 00 04 00 30 00 04 00 3C 00 04 00
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld Strategie 
+' 	Eq 
+' 	Ld i 
+' 	LitDI2 0x0003 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld SecCode 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld timeframe 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0005 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld delta 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0006 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld sl 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0000 
+' 	Eq 
+' 	And 
+' 	IfBlock 
+' Line #157:
+' Line #158:
+' 	LitStr 0x000A "[LASTPOS] "
+' 	Ld Strategie 
+' 	Concat 
+' 	LitStr 0x0001 " "
+' 	Concat 
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x000B " timeframe="
+' 	Concat 
+' 	Ld timeframe 
+' 	Concat 
+' 	LitStr 0x0007 " delta="
+' 	Concat 
+' 	Ld delta 
+' 	Concat 
+' 	LitStr 0x0004 " sl="
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0004 " tp="
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	LitStr 0x0009 " LastPos="
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x000A 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	LitStr 0x0003 " i="
+' 	Concat 
+' 	Ld i 
+' 	Concat 
+' 	St Data 
+' Line #159:
+' 	Ld Data 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #160:
+' Line #161:
+' 	Ld i 
+' 	LitDI2 0x000A 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld Qty 
+' 	Add 
+' 	Ld i 
+' 	LitDI2 0x000A 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #162:
+' 	LitStr 0x0015 "[UPDATEPOSWithoutTP] "
+' 	Ld Strategie 
+' 	Concat 
+' 	LitStr 0x0001 " "
+' 	Concat 
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x000B " timeframe="
+' 	Concat 
+' 	Ld timeframe 
+' 	Concat 
+' 	LitStr 0x0007 " delta="
+' 	Concat 
+' 	Ld delta 
+' 	Concat 
+' 	LitStr 0x0004 " sl="
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0004 " tp="
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	LitStr 0x0005 " Qty="
+' 	Concat 
+' 	Ld Qty 
+' 	Concat 
+' 	St Data 
+' Line #163:
+' 	Ld Data 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #164:
+' Line #165:
+' 	LitStr 0x0009 "[NEWPOS] "
+' 	Ld Strategie 
+' 	Concat 
+' 	LitStr 0x0001 " "
+' 	Concat 
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x000B " timeframe="
+' 	Concat 
+' 	Ld timeframe 
+' 	Concat 
+' 	LitStr 0x0007 " delta="
+' 	Concat 
+' 	Ld delta 
+' 	Concat 
+' 	LitStr 0x0004 " sl="
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0004 " tp="
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	LitStr 0x0008 " NewPos="
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x000A 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	LitStr 0x0003 " i="
+' 	Concat 
+' 	Ld i 
+' 	Concat 
+' 	St Data 
+' Line #166:
+' 	Ld Data 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #167:
+' Line #168:
+' 	QuoteRem 0x0008 0x0018 "обработка сделки покупки"
+' Line #169:
+' 	Ld Qty 
+' 	LitDI2 0x0000 
+' 	Gt 
+' 	IfBlock 
+' Line #170:
+' 	Ld i 
+' 	LitDI2 0x0011 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld Volume 
+' 	Sub 
+' 	Ld i 
+' 	LitDI2 0x0011 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #171:
+' 	Ld i 
+' 	LitDI2 0x0012 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld Б 
+' 	Add 
+' 	Ld i 
+' 	LitDI2 0x0012 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #172:
+' 	Ld i 
+' 	LitDI2 0x0013 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0001 
+' 	Ld Qty 
+' 	FnAbs 
+' 	Mul 
+' 	Add 
+' 	Ld i 
+' 	LitDI2 0x0013 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' 	QuoteRem 0x0041 0x0010 "комиссия брокера"
+' Line #173:
+' 	EndIfBlock 
+' Line #174:
+' Line #175:
+' 	QuoteRem 0x0008 0x0018 "обработка сделки продажи"
+' Line #176:
+' 	Ld Qty 
+' 	LitDI2 0x0000 
+' 	Lt 
+' 	IfBlock 
+' Line #177:
+' 	Ld i 
+' 	LitDI2 0x0011 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld Volume 
+' 	Add 
+' 	Ld i 
+' 	LitDI2 0x0011 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #178:
+' 	Ld i 
+' 	LitDI2 0x0012 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld Б 
+' 	Add 
+' 	Ld i 
+' 	LitDI2 0x0012 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #179:
+' 	Ld i 
+' 	LitDI2 0x0013 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0001 
+' 	Ld Qty 
+' 	FnAbs 
+' 	Mul 
+' 	Add 
+' 	Ld i 
+' 	LitDI2 0x0013 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' 	QuoteRem 0x0041 0x0010 "комиссия брокера"
+' Line #180:
+' 	EndIfBlock 
+' Line #181:
+' Line #182:
+' 	QuoteRem 0x0008 0x0015 "есть открытая позиция"
+' Line #183:
+' 	Ld i 
+' 	LitDI2 0x000A 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0000 
+' 	Ne 
+' 	IfBlock 
+' Line #184:
+' 	LitStr 0x0000 ""
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #185:
+' 	LitStr 0x0000 ""
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #186:
+' 	LitStr 0x0000 ""
+' 	Ld i 
+' 	LitDI2 0x000E 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #187:
+' 	LitStr 0x0000 ""
+' 	Ld i 
+' 	LitDI2 0x000F 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #188:
+' 	EndIfBlock 
+' Line #189:
+' Line #190:
+' 	LitDI2 0x0001 
+' 	St m 
+' Line #191:
+' 	EndIfBlock 
+' Line #192:
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	Add 
+' 	St i 
+' Line #193:
+' 	Wend 
+' Line #194:
+' Line #195:
+' 	EndWith 
+' Line #196:
+' 	EndFunc 
+' Line #197:
+' Line #198:
+' 	FuncDefn (Public Function CurrentTime(ByVal sht As ) As Variant)
+' Line #199:
+' Line #200:
+' 	Dim 
+' 	OptionBase 
+' 	LitDI2 0x0002 
+' 	OptionBase 
+' 	LitDI2 0x0003 
+' 	VarDefn ArrayOf3Candles
+' Line #201:
+' 	Ld ArrayOf3Candles 
+' 	Erase 0x0001 
+' Line #202:
+' Line #203:
+' 	QuoteRem 0x0000 0x0025 "запись в массив параметров I-ой свечи"
+' Line #204:
+' 	LitStr 0x0004 "D181"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0000 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #205:
+' 	LitStr 0x0009 "E122:E181"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	Ld WorksheetFunction 
+' 	ArgsMemLd Max 0x0001 
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0001 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #206:
+' 	LitStr 0x0009 "F122:F181"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	Ld WorksheetFunction 
+' 	ArgsMemLd Min 0x0001 
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0002 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #207:
+' 	LitStr 0x0004 "G122"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0003 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #208:
+' Line #209:
+' 	QuoteRem 0x0000 0x0026 "запись в массив параметров II-ой свечи"
+' Line #210:
+' 	LitStr 0x0004 "D121"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0000 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #211:
+' 	LitStr 0x0008 "E62:E121"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	Ld WorksheetFunction 
+' 	ArgsMemLd Max 0x0001 
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0001 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #212:
+' 	LitStr 0x0008 "F62:F121"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	Ld WorksheetFunction 
+' 	ArgsMemLd Min 0x0001 
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0002 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #213:
+' 	LitStr 0x0003 "G62"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0003 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #214:
+' Line #215:
+' 	QuoteRem 0x0000 0x0027 "запись в массив параметров III-ой свечи"
+' Line #216:
+' 	LitStr 0x0003 "D61"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0000 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #217:
+' 	LitStr 0x0006 "E2:E61"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	Ld WorksheetFunction 
+' 	ArgsMemLd Max 0x0001 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0001 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #218:
+' 	LitStr 0x0006 "F2:F61"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	Ld WorksheetFunction 
+' 	ArgsMemLd Min 0x0001 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0002 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #219:
+' 	LitStr 0x0002 "G2"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0003 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #220:
+' Line #221:
+' 	Ld ArrayOf3Candles 
+' 	St CurrentTime 
+' Line #222:
+' Line #223:
+' 	EndFunc 
+' Line #224:
+' Line #225:
+' Line #226:
+' 	FuncDefn (Public Function ii(ByVal sht As ) As Variant)
+' Line #227:
+' Line #228:
+' 	Dim 
+' 	OptionBase 
+' 	LitDI2 0x0002 
+' 	OptionBase 
+' 	LitDI2 0x0003 
+' 	VarDefn ArrayOf3Candles
+' Line #229:
+' 	Ld ArrayOf3Candles 
+' 	Erase 0x0001 
+' Line #230:
+' Line #231:
+' 	QuoteRem 0x0000 0x0025 "запись в массив параметров I-ой свечи"
+' Line #232:
+' 	LitStr 0x0004 "D361"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0000 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #233:
+' 	LitStr 0x0009 "E242:E361"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	Ld WorksheetFunction 
+' 	ArgsMemLd Max 0x0001 
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0001 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #234:
+' 	LitStr 0x0009 "F242:F361"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	Ld WorksheetFunction 
+' 	ArgsMemLd Min 0x0001 
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0002 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #235:
+' 	LitStr 0x0004 "G242"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0003 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #236:
+' Line #237:
+' 	QuoteRem 0x0000 0x0026 "запись в массив параметров II-ой свечи"
+' Line #238:
+' 	LitStr 0x0004 "D241"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0000 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #239:
+' 	LitStr 0x0009 "E122:E241"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	Ld WorksheetFunction 
+' 	ArgsMemLd Max 0x0001 
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0001 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #240:
+' 	LitStr 0x0009 "F122:F241"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	Ld WorksheetFunction 
+' 	ArgsMemLd Min 0x0001 
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0002 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #241:
+' 	LitStr 0x0004 "G122"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0003 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #242:
+' Line #243:
+' 	QuoteRem 0x0000 0x0027 "запись в массив параметров III-ой свечи"
+' Line #244:
+' 	LitStr 0x0004 "D121"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0000 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #245:
+' 	LitStr 0x0007 "E2:E121"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	Ld WorksheetFunction 
+' 	ArgsMemLd Max 0x0001 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0001 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #246:
+' 	LitStr 0x0007 "F2:F121"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	Ld WorksheetFunction 
+' 	ArgsMemLd Min 0x0001 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0002 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #247:
+' 	LitStr 0x0002 "G2"
+' 	Ld sht 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0003 
+' 	ArgsSt ArrayOf3Candles 0x0002 
+' Line #248:
+' Line #249:
+' 	Ld ArrayOf3Candles 
+' 	St ii 
+' Line #250:
+' Line #251:
+' 	EndFunc 
+' VBA/Orders - 9075 bytes
+' Line #0:
+' 	Option  (Explicit)
+' Line #1:
+' 	FuncDefn (Sub BuyLimit(SecCode))
+' Line #2:
+' Line #3:
+' 	Dim 
+' 	VarDefn _B_var_f (As String)
+' Line #4:
+' 	Dim 
+' 	VarDefn ID (As Long)
+' Line #5:
+' 	Dim 
+' 	VarDefn Data (As String)
+' Line #6:
+' Line #7:
+' 	Ld strFileFullName 
+' 	MemLd ThisWorkbook 
+' 	St _B_var_f 
+' Line #8:
+' 	LitStr 0x0001 "s"
+' 	LitStr 0x0008 "1/1/1970"
+' 	ArgsLd Now 0x0000 
+' 	ArgsLd asfd 0x0003 
+' 	LitDI4 0x2700 0x66C2 
+' 	Sub 
+' 	St ID 
+' Line #9:
+' 	LitStr 0x001B "ACTION=NEW_ORDER; TRANS_ID="
+' 	Ld ID 
+' 	Concat 
+' 	LitStr 0x001C "; CLASSCODE=SPBFUT; SECCODE="
+' 	Concat 
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x0015 "; OPERATION=B; PRICE="
+' 	Concat 
+' 	Ld Price 
+' 	Concat 
+' 	LitStr 0x0013 "; TYPE=L; QUANTITY="
+' 	Concat 
+' 	Ld Quantity 
+' 	Concat 
+' 	LitStr 0x0023 "; ACCOUNT=SPBFUTL6ho2; CLIENT_CODE="
+' 	Concat 
+' 	Ld cmnt 
+' 	Concat 
+' 	LitStr 0x0001 ";"
+' 	Concat 
+' 	St Data 
+' Line #10:
+' Line #11:
+' 	Ld _B_var_f 
+' 	Ld _B_var_f 
+' 	FnLen 
+' 	LitDI2 0x000A 
+' 	Sub 
+' 	ArgsLd Left 0x0002 
+' 	LitStr 0x0007 "tri.tri"
+' 	Concat 
+' 	LitDI2 0x0001 
+' 	Sharp 
+' 	LitDefault 
+' 	Open (For Append Shared)
+' Line #12:
+' 	LitDI2 0x0001 
+' 	Sharp 
+' 	PrintChan 
+' 	Ld Data 
+' 	PrintItemNL 
+' Line #13:
+' 	LitDI2 0x0001 
+' 	Sharp 
+' 	Close 0x0001 
+' Line #14:
+' Line #15:
+' 	Ld Data 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #16:
+' Line #17:
+' 	EndSub 
+' Line #18:
+' Line #19:
+' 	FuncDefn (Sub SellLimit(SecCode))
+' Line #20:
+' Line #21:
+' 	Dim 
+' 	VarDefn _B_var_f (As String)
+' Line #22:
+' 	Dim 
+' 	VarDefn ID (As Long)
+' Line #23:
+' 	Dim 
+' 	VarDefn Data (As String)
+' Line #24:
+' Line #25:
+' 	Ld strFileFullName 
+' 	MemLd ThisWorkbook 
+' 	St _B_var_f 
+' Line #26:
+' 	LitStr 0x0001 "s"
+' 	LitStr 0x0008 "1/1/1970"
+' 	ArgsLd Now 0x0000 
+' 	ArgsLd asfd 0x0003 
+' 	LitDI4 0x6940 0x66D1 
+' 	Sub 
+' 	St ID 
+' Line #27:
+' 	LitStr 0x001B "ACTION=NEW_ORDER; TRANS_ID="
+' 	Ld ID 
+' 	Concat 
+' 	LitStr 0x001C "; CLASSCODE=SPBFUT; SECCODE="
+' 	Concat 
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x0015 "; OPERATION=S; PRICE="
+' 	Concat 
+' 	Ld Price 
+' 	Concat 
+' 	LitStr 0x0013 "; TYPE=L; QUANTITY="
+' 	Concat 
+' 	Ld Quantity 
+' 	Concat 
+' 	LitStr 0x0023 "; ACCOUNT=SPBFUTL6ho2; CLIENT_CODE="
+' 	Concat 
+' 	Ld cmnt 
+' 	Concat 
+' 	LitStr 0x0001 ";"
+' 	Concat 
+' 	St Data 
+' Line #28:
+' Line #29:
+' 	Ld _B_var_f 
+' 	Ld _B_var_f 
+' 	FnLen 
+' 	LitDI2 0x000A 
+' 	Sub 
+' 	ArgsLd Left 0x0002 
+' 	LitStr 0x0007 "tri.tri"
+' 	Concat 
+' 	LitDI2 0x0001 
+' 	Sharp 
+' 	LitDefault 
+' 	Open (For Append Shared)
+' Line #30:
+' 	LitDI2 0x0001 
+' 	Sharp 
+' 	PrintChan 
+' 	Ld Data 
+' 	PrintItemNL 
+' Line #31:
+' 	LitDI2 0x0001 
+' 	Sharp 
+' 	Close 0x0001 
+' Line #32:
+' Line #33:
+' 	Ld Data 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #34:
+' Line #35:
+' 	EndSub 
+' Line #36:
+' Line #37:
+' 	FuncDefn (Sub StopLimitAndTake(SecCode))
+' Line #38:
+' Line #39:
+' 	Dim 
+' 	VarDefn ID (As Long)
+' Line #40:
+' 	Dim 
+' 	VarDefn Data (As String)
+' Line #41:
+' 	Dim 
+' 	VarDefn _B_var_f (As String)
+' Line #42:
+' Line #43:
+' 	Ld strFileFullName 
+' 	MemLd ThisWorkbook 
+' 	St _B_var_f 
+' Line #44:
+' Line #45:
+' 	LitStr 0x0001 "s"
+' 	LitStr 0x0008 "1/1/1970"
+' 	ArgsLd Now 0x0000 
+' 	ArgsLd asfd 0x0003 
+' 	LitDI4 0x2B57 0x66C2 
+' 	Sub 
+' 	St ID 
+' Line #46:
+' 	LineCont 0x0048 03 00 08 00 07 00 08 00 09 00 08 00 0B 00 08 00 0F 00 08 00 11 00 08 00 15 00 08 00 19 00 08 00 1D 00 08 00 21 00 08 00 25 00 08 00 29 00 08 00 2B 00 08 00 2F 00 08 00 31 00 08 00 33 00 08 00 35 00 08 00 37 00 08 00
+' 	LitStr 0x0015 "ACTION=NEW_STOP_ORDER"
+' 	LitStr 0x000B "; TRANS_ID="
+' 	Concat 
+' 	Ld ID 
+' 	Concat 
+' 	LitStr 0x0032 "; STOP_ORDER_KIND=TAKE_PROFIT_AND_STOP_LIMIT_ORDER"
+' 	Concat 
+' 	LitStr 0x0012 "; CLASSCODE=SPBFUT"
+' 	Concat 
+' 	LitStr 0x000A "; SECCODE="
+' 	Concat 
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x0015 "; ACCOUNT=SPBFUTL6ho2"
+' 	Concat 
+' 	LitStr 0x000C "; OPERATION="
+' 	Concat 
+' 	Ld StopLimitAndTakeProfit 
+' 	Concat 
+' 	LitStr 0x000B "; QUANTITY="
+' 	Concat 
+' 	Ld Quantity 
+' 	Concat 
+' 	LitStr 0x000D "; STOPPRICE2="
+' 	Concat 
+' 	Ld StopLimitPric 
+' 	Concat 
+' 	LitStr 0x0008 "; PRICE="
+' 	Concat 
+' 	Ld Price 
+' 	Concat 
+' 	LitStr 0x000C "; STOPPRICE="
+' 	Concat 
+' 	Ld TakeProfit 
+' 	Concat 
+' 	LitStr 0x0009 "; OFFSET="
+' 	Concat 
+' 	Ld TakeProfitPrice 
+' 	Concat 
+' 	LitStr 0x0017 "; OFFSET_UNITS=PERCENTS"
+' 	Concat 
+' 	LitStr 0x0009 "; SPREAD="
+' 	Concat 
+' 	Ld Offset 
+' 	Concat 
+' 	LitStr 0x0017 "; SPREAD_UNITS=PERCENTS"
+' 	Concat 
+' 	LitStr 0x0016 "; MARKET_STOP_LIMIT=NO"
+' 	Concat 
+' 	LitStr 0x0017 "; MARKET_TAKE_PROFIT=NO"
+' 	Concat 
+' 	LitStr 0x0011 "; EXPIRY_DATE=GTC"
+' 	Concat 
+' 	LitStr 0x000E "; CLIENT_CODE="
+' 	Concat 
+' 	Ld cmnt 
+' 	Concat 
+' 	St Data 
+' Line #47:
+' Line #48:
+' 	Ld _B_var_f 
+' 	Ld _B_var_f 
+' 	FnLen 
+' 	LitDI2 0x000A 
+' 	Sub 
+' 	ArgsLd Left 0x0002 
+' 	LitStr 0x0007 "tri.tri"
+' 	Concat 
+' 	LitDI2 0x0001 
+' 	Sharp 
+' 	LitDefault 
+' 	Open (For Append Shared)
+' Line #49:
+' 	LitDI2 0x0001 
+' 	Sharp 
+' 	PrintChan 
+' 	Ld Data 
+' 	PrintItemNL 
+' Line #50:
+' 	LitDI2 0x0001 
+' 	Sharp 
+' 	Close 0x0001 
+' Line #51:
+' Line #52:
+' 	Ld Data 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #53:
+' Line #54:
+' 	EndSub 
+' VBA/s7 - 29574 bytes
+' Line #0:
+' 	Option  (Explicit)
+' Line #1:
+' 	FuncDefn (Sub h(ByVal sht As ))
+' Line #2:
+' Line #3:
+' 	Dim 
+' 	VarDefn i (As Byte)
+' Line #4:
+' 	Dim 
+' 	VarDefn m (As Byte)
+' Line #5:
+' Line #6:
+' 	Dim 
+' 	VarDefn Max (As Double)
+' Line #7:
+' 	Dim 
+' 	VarDefn Min (As Double)
+' Line #8:
+' 	Dim 
+' 	VarDefn _B_var_For (As Double)
+' Line #9:
+' 	Dim 
+' 	VarDefn PriceOpen (As Double)
+' Line #10:
+' 	Dim 
+' 	VarDefn PriceClose (As Double)
+' Line #11:
+' 	Dim 
+' 	VarDefn _B_var_CurrentHigh (As Double)
+' Line #12:
+' 	Dim 
+' 	VarDefn CurrentLow (As Double)
+' Line #13:
+' 	Dim 
+' 	VarDefn Price (As Double)
+' Line #14:
+' Line #15:
+' 	Dim 
+' 	VarDefn lastrow (As Integer)
+' Line #16:
+' Line #17:
+' 	Dim 
+' 	VarDefn _B_var_Avg (As String)
+' 	QuoteRem 0x0015 0x0024 "строка с параметрами для логирования"
+' Line #18:
+' 	Dim 
+' 	VarDefn Туче (As String)
+' Line #19:
+' 	Dim 
+' 	VarDefn cmnt (As String)
+' Line #20:
+' Line #21:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0005 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	LitDI2 0x0079 
+' 	LitDI2 0x0005 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	ArgsLd Range 0x0002 
+' 	Ld S7_120 
+' 	MemLd WorksheetFunction 
+' 	ArgsMemLd Max 0x0001 
+' 	St Max 
+' Line #22:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0006 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	LitDI2 0x0079 
+' 	LitDI2 0x0006 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	ArgsLd Range 0x0002 
+' 	Ld S7_120 
+' 	MemLd WorksheetFunction 
+' 	ArgsMemLd Min 0x0001 
+' 	St Min 
+' Line #23:
+' 	LitDI2 0x0079 
+' 	LitDI2 0x0004 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St _B_var_For 
+' Line #24:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0007 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St PriceOpen 
+' Line #25:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0005 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St PriceClose 
+' Line #26:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0006 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St _B_var_CurrentHigh 
+' Line #27:
+' Line #28:
+' 	QuoteRem 0x0000 0x0040 "обновление значений max и min по стратегии на странице стратегий"
+' Line #29:
+' 	StartWithExpr 
+' 	LitStr 0x000A "strategies"
+' 	Ld strFileFullName 
+' 	ArgsMemLd Sheets 0x0001 
+' 	With 
+' Line #30:
+' Line #31:
+' 	Ld xlUp 
+' 	Ld Rows 
+' 	MemLd Count 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	ArgsMemLd End 0x0001 
+' 	MemLd Row 
+' 	St lastrow 
+' Line #32:
+' Line #33:
+' 	LitDI2 0x0000 
+' 	St m 
+' 	QuoteRem 0x000A 0x001E "триггер, что стратегия найдена"
+' Line #34:
+' 	LitDI2 0x0002 
+' 	St i 
+' Line #35:
+' 	Ld i 
+' 	Ld lastrow 
+' 	Le 
+' 	Ld m 
+' 	LitDI2 0x0000 
+' 	Eq 
+' 	And 
+' 	While 
+' Line #36:
+' 	LineCont 0x0014 0C 00 08 00 18 00 08 00 24 00 08 00 30 00 08 00 3C 00 08 00
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0002 "S7"
+' 	Eq 
+' 	Ld i 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0078 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0003 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld SecCode 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0005 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld delta 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0006 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld sl 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld tp 
+' 	Eq 
+' 	And 
+' 	IfBlock 
+' Line #37:
+' Line #38:
+' 	LitDI2 0x0001 
+' 	St m 
+' 	QuoteRem 0x0012 0x002B "найдена нужная стратегия в списке стратегий"
+' Line #39:
+' Line #40:
+' 	QuoteRem 0x0008 0x001D "обновление значения Direction"
+' Line #41:
+' 	Ld _B_var_For 
+' 	Ld PriceOpen 
+' 	Gt 
+' 	IfBlock 
+' Line #42:
+' 	LitStr 0x0001 "B"
+' 	Ld i 
+' 	LitDI2 0x000F 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #43:
+' 	EndIfBlock 
+' Line #44:
+' 	Ld _B_var_For 
+' 	Ld PriceOpen 
+' 	Lt 
+' 	IfBlock 
+' Line #45:
+' 	LitStr 0x0001 "S"
+' 	Ld i 
+' 	LitDI2 0x000F 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #46:
+' 	EndIfBlock 
+' Line #47:
+' Line #48:
+' 	QuoteRem 0x000C 0x0017 "обновление значения Max"
+' Line #49:
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	Ld Max 
+' 	Lt 
+' 	Or 
+' 	IfBlock 
+' Line #50:
+' 	Ld Max 
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #51:
+' 	Ld Min 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #52:
+' 	QuoteRem 0x0014 0x0033 "обновление значения Avg, т.к. обновился Max (и Min)"
+' Line #53:
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Add 
+' 	Paren 
+' 	LitDI2 0x0002 
+' 	Div 
+' 	Ld i 
+' 	LitDI2 0x000E 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #54:
+' 	EndIfBlock 
+' Line #55:
+' Line #56:
+' 	QuoteRem 0x000C 0x0017 "обновление значения Min"
+' Line #57:
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	Ld Min 
+' 	Gt 
+' 	Or 
+' 	IfBlock 
+' Line #58:
+' 	Ld Min 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #59:
+' 	Ld Max 
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #60:
+' 	QuoteRem 0x0014 0x0033 "обновление значения Avg, т.к. обновился Min (и Max)"
+' Line #61:
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Add 
+' 	Paren 
+' 	LitDI2 0x0002 
+' 	Div 
+' 	Ld i 
+' 	LitDI2 0x000E 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #62:
+' 	EndIfBlock 
+' Line #63:
+' Line #64:
+' 	EndIfBlock 
+' Line #65:
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	Add 
+' 	St i 
+' Line #66:
+' 	Wend 
+' Line #67:
+' Line #68:
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	LitDI2 0x000E 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	St CurrentLow 
+' Line #69:
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	LitDI2 0x000F 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	St Туче 
+' Line #70:
+' Line #71:
+' 	EndWith 
+' Line #72:
+' Line #73:
+' Line #74:
+' 	LitStr 0x0002 "S7"
+' 	Ld SecCode 
+' 	LitDI2 0x0078 
+' 	Ld delta 
+' 	Ld sl 
+' 	Ld tp 
+' 	ArgsCall (Call) BlockTrade 0x0006 
+' Line #75:
+' Line #76:
+' 	LitStr 0x0004 "Max="
+' 	Ld Max 
+' 	Concat 
+' 	LitStr 0x0005 " Min="
+' 	Concat 
+' 	Ld Min 
+' 	Concat 
+' 	LitStr 0x000B " PriceOpen="
+' 	Concat 
+' 	Ld _B_var_For 
+' 	Concat 
+' 	LitStr 0x000C " PriceClose="
+' 	Concat 
+' 	Ld PriceOpen 
+' 	Concat 
+' 	LitStr 0x000D " CurrentHigh="
+' 	Concat 
+' 	Ld PriceClose 
+' 	Concat 
+' 	LitStr 0x000C " CurrentLow="
+' 	Concat 
+' 	Ld _B_var_CurrentHigh 
+' 	Concat 
+' 	LitStr 0x0005 " Avg="
+' 	Concat 
+' 	Ld CurrentLow 
+' 	Concat 
+' 	LitStr 0x000B " Direction="
+' 	Concat 
+' 	Ld Туче 
+' 	Concat 
+' 	St _B_var_Avg 
+' Line #77:
+' 	Ld _B_var_Avg 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #78:
+' Line #79:
+' 	LitStr 0x0009 "o-S7_120-"
+' 	Ld delta 
+' 	Concat 
+' 	LitStr 0x0001 "-"
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0001 "-"
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	St cmnt 
+' Line #80:
+' Line #81:
+' 	Ld Max 
+' 	Ld Min 
+' 	Sub 
+' 	Ld delta 
+' 	Gt 
+' 	IfBlock 
+' Line #82:
+' Line #83:
+' 	QuoteRem 0x0004 0x0004 "long"
+' Line #84:
+' 	Ld _B_var_CurrentHigh 
+' 	Ld CurrentLow 
+' 	Lt 
+' 	Ld Туче 
+' 	LitStr 0x0001 "B"
+' 	Eq 
+' 	And 
+' 	IfBlock 
+' Line #85:
+' Line #86:
+' 	QuoteRem 0x0008 0x0035 "записываем в лог параметры, по которым заходим в лонг"
+' Line #87:
+' 	LitStr 0x000D "[TRADE] LONG "
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x000C " S7_120 Max="
+' 	Concat 
+' 	Ld Max 
+' 	Concat 
+' 	LitStr 0x0005 " Min="
+' 	Concat 
+' 	Ld Min 
+' 	Concat 
+' 	LitStr 0x000B " PriceOpen="
+' 	Concat 
+' 	Ld _B_var_For 
+' 	Concat 
+' 	LitStr 0x000C " PriceClose="
+' 	Concat 
+' 	Ld PriceOpen 
+' 	Concat 
+' 	LitStr 0x000D " CurrentHigh="
+' 	Concat 
+' 	Ld PriceClose 
+' 	Concat 
+' 	LitStr 0x000C " CurrentLow="
+' 	Concat 
+' 	Ld _B_var_CurrentHigh 
+' 	Concat 
+' 	LitStr 0x0005 " Avg="
+' 	Concat 
+' 	Ld CurrentLow 
+' 	Concat 
+' 	LitStr 0x000B " Direction="
+' 	Concat 
+' 	Ld Туче 
+' 	Concat 
+' 	St _B_var_Avg 
+' Line #88:
+' 	Ld _B_var_Avg 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #89:
+' Line #90:
+' 	Ld PriceClose 
+' 	St Price 
+' 	QuoteRem 0x001C 0x0039 "увеличиваем цену на slip, чтобы наверняка зайти в позицию"
+' Line #91:
+' 	Ld SecCode 
+' 	Ld Price 
+' 	Ld Quantity 
+' 	Ld cmnt 
+' 	ArgsCall (Call) BuyLimit 0x0004 
+' Line #92:
+' Line #93:
+' 	EndIfBlock 
+' Line #94:
+' Line #95:
+' 	QuoteRem 0x0004 0x0005 "short"
+' Line #96:
+' 	Ld PriceClose 
+' 	Ld CurrentLow 
+' 	Gt 
+' 	Ld Туче 
+' 	LitStr 0x0001 "S"
+' 	Eq 
+' 	And 
+' 	IfBlock 
+' Line #97:
+' Line #98:
+' 	QuoteRem 0x0008 0x0035 "записываем в лог параметры, по которым заходим в шорт"
+' Line #99:
+' 	LitStr 0x000E "[TRADE] SHORT "
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x000C " S7_120 Max="
+' 	Concat 
+' 	Ld Max 
+' 	Concat 
+' 	LitStr 0x0005 " Min="
+' 	Concat 
+' 	Ld Min 
+' 	Concat 
+' 	LitStr 0x000B " PriceOpen="
+' 	Concat 
+' 	Ld _B_var_For 
+' 	Concat 
+' 	LitStr 0x000C " PriceClose="
+' 	Concat 
+' 	Ld PriceOpen 
+' 	Concat 
+' 	LitStr 0x000D " CurrentHigh="
+' 	Concat 
+' 	Ld PriceClose 
+' 	Concat 
+' 	LitStr 0x000C " CurrentLow="
+' 	Concat 
+' 	Ld _B_var_CurrentHigh 
+' 	Concat 
+' 	LitStr 0x0005 " Avg="
+' 	Concat 
+' 	Ld CurrentLow 
+' 	Concat 
+' 	LitStr 0x000B " Direction="
+' 	Concat 
+' 	Ld Туче 
+' 	Concat 
+' 	St _B_var_Avg 
+' Line #100:
+' 	Ld _B_var_Avg 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #101:
+' Line #102:
+' 	Ld _B_var_CurrentHigh 
+' 	St Price 
+' 	QuoteRem 0x001B 0x0039 "увеличиваем цену на slip, чтобы наверняка зайти в позицию"
+' Line #103:
+' 	Ld SecCode 
+' 	Ld Price 
+' 	Ld Quantity 
+' 	Ld cmnt 
+' 	ArgsCall (Call) SellLimit 0x0004 
+' Line #104:
+' Line #105:
+' 	EndIfBlock 
+' Line #106:
+' Line #107:
+' 	EndIfBlock 
+' Line #108:
+' Line #109:
+' 	EndSub 
+' Line #110:
+' Line #111:
+' Line #112:
+' 	FuncDefn (Sub _B_var_UpdateQty(ByVal sht As ))
+' Line #113:
+' Line #114:
+' 	Dim 
+' 	VarDefn i (As Byte)
+' Line #115:
+' 	Dim 
+' 	VarDefn m (As Byte)
+' Line #116:
+' Line #117:
+' 	Dim 
+' 	VarDefn Max (As Double)
+' Line #118:
+' 	Dim 
+' 	VarDefn Min (As Double)
+' Line #119:
+' 	Dim 
+' 	VarDefn _B_var_For (As Double)
+' Line #120:
+' 	Dim 
+' 	VarDefn PriceOpen (As Double)
+' Line #121:
+' 	Dim 
+' 	VarDefn PriceClose (As Double)
+' Line #122:
+' 	Dim 
+' 	VarDefn _B_var_CurrentHigh (As Double)
+' Line #123:
+' 	Dim 
+' 	VarDefn CurrentLow (As Double)
+' Line #124:
+' 	Dim 
+' 	VarDefn Price (As Double)
+' Line #125:
+' Line #126:
+' 	Dim 
+' 	VarDefn lastrow (As Integer)
+' Line #127:
+' Line #128:
+' 	Dim 
+' 	VarDefn _B_var_Avg (As String)
+' 	QuoteRem 0x0015 0x0024 "строка с параметрами для логирования"
+' Line #129:
+' 	Dim 
+' 	VarDefn Туче (As String)
+' Line #130:
+' 	Dim 
+' 	VarDefn cmnt (As String)
+' Line #131:
+' Line #132:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0005 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	LitDI2 0x00B5 
+' 	LitDI2 0x0005 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	ArgsLd Range 0x0002 
+' 	Ld S7_120 
+' 	MemLd WorksheetFunction 
+' 	ArgsMemLd Max 0x0001 
+' 	St Max 
+' Line #133:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0006 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	LitDI2 0x00B5 
+' 	LitDI2 0x0006 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	ArgsLd Range 0x0002 
+' 	Ld S7_120 
+' 	MemLd WorksheetFunction 
+' 	ArgsMemLd Min 0x0001 
+' 	St Min 
+' Line #134:
+' 	LitDI2 0x00B5 
+' 	LitDI2 0x0004 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St _B_var_For 
+' Line #135:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0007 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St PriceOpen 
+' Line #136:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0005 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St PriceClose 
+' Line #137:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0006 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St _B_var_CurrentHigh 
+' Line #138:
+' Line #139:
+' 	QuoteRem 0x0000 0x0040 "обновление значений max и min по стратегии на странице стратегий"
+' Line #140:
+' 	StartWithExpr 
+' 	LitStr 0x000A "strategies"
+' 	Ld strFileFullName 
+' 	ArgsMemLd Sheets 0x0001 
+' 	With 
+' Line #141:
+' Line #142:
+' 	Ld xlUp 
+' 	Ld Rows 
+' 	MemLd Count 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	ArgsMemLd End 0x0001 
+' 	MemLd Row 
+' 	St lastrow 
+' Line #143:
+' Line #144:
+' 	LitDI2 0x0000 
+' 	St m 
+' 	QuoteRem 0x000A 0x001E "триггер, что стратегия найдена"
+' Line #145:
+' 	LitDI2 0x0002 
+' 	St i 
+' Line #146:
+' 	Ld i 
+' 	Ld lastrow 
+' 	Le 
+' 	Ld m 
+' 	LitDI2 0x0000 
+' 	Eq 
+' 	And 
+' 	While 
+' Line #147:
+' 	LineCont 0x0014 0C 00 08 00 18 00 08 00 24 00 08 00 30 00 08 00 3C 00 08 00
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0002 "S7"
+' 	Eq 
+' 	Ld i 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x00B4 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0003 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld SecCode 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0005 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld delta 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0006 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld sl 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld tp 
+' 	Eq 
+' 	And 
+' 	IfBlock 
+' Line #148:
+' Line #149:
+' 	LitDI2 0x0001 
+' 	St m 
+' 	QuoteRem 0x0012 0x002B "найдена нужная стратегия в списке стратегий"
+' Line #150:
+' Line #151:
+' 	QuoteRem 0x0008 0x001D "обновление значения Direction"
+' Line #152:
+' 	Ld _B_var_For 
+' 	Ld PriceOpen 
+' 	Gt 
+' 	IfBlock 
+' Line #153:
+' 	LitStr 0x0001 "B"
+' 	Ld i 
+' 	LitDI2 0x000F 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #154:
+' 	EndIfBlock 
+' Line #155:
+' 	Ld _B_var_For 
+' 	Ld PriceOpen 
+' 	Lt 
+' 	IfBlock 
+' Line #156:
+' 	LitStr 0x0001 "S"
+' 	Ld i 
+' 	LitDI2 0x000F 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #157:
+' 	EndIfBlock 
+' Line #158:
+' Line #159:
+' 	QuoteRem 0x000C 0x0017 "обновление значения Max"
+' Line #160:
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	Ld Max 
+' 	Lt 
+' 	Or 
+' 	IfBlock 
+' Line #161:
+' 	Ld Max 
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #162:
+' 	Ld Min 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #163:
+' 	QuoteRem 0x0014 0x0033 "обновление значения Avg, т.к. обновился Max (и Min)"
+' Line #164:
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Add 
+' 	Paren 
+' 	LitDI2 0x0002 
+' 	Div 
+' 	Ld i 
+' 	LitDI2 0x000E 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #165:
+' 	EndIfBlock 
+' Line #166:
+' Line #167:
+' 	QuoteRem 0x000C 0x0017 "обновление значения Min"
+' Line #168:
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	Ld Min 
+' 	Gt 
+' 	Or 
+' 	IfBlock 
+' Line #169:
+' 	Ld Min 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #170:
+' 	Ld Max 
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #171:
+' 	QuoteRem 0x0014 0x0033 "обновление значения Avg, т.к. обновился Min (и Max)"
+' Line #172:
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Add 
+' 	Paren 
+' 	LitDI2 0x0002 
+' 	Div 
+' 	Ld i 
+' 	LitDI2 0x000E 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #173:
+' 	EndIfBlock 
+' Line #174:
+' Line #175:
+' 	EndIfBlock 
+' Line #176:
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	Add 
+' 	St i 
+' Line #177:
+' 	Wend 
+' Line #178:
+' Line #179:
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	LitDI2 0x000E 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	St CurrentLow 
+' Line #180:
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	LitDI2 0x000F 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	St Туче 
+' Line #181:
+' Line #182:
+' 	EndWith 
+' Line #183:
+' Line #184:
+' Line #185:
+' 	LitStr 0x0002 "S7"
+' 	Ld SecCode 
+' 	LitDI2 0x00B4 
+' 	Ld delta 
+' 	Ld sl 
+' 	Ld tp 
+' 	ArgsCall (Call) BlockTrade 0x0006 
+' Line #186:
+' Line #187:
+' 	LitStr 0x0004 "Max="
+' 	Ld Max 
+' 	Concat 
+' 	LitStr 0x0005 " Min="
+' 	Concat 
+' 	Ld Min 
+' 	Concat 
+' 	LitStr 0x000B " PriceOpen="
+' 	Concat 
+' 	Ld _B_var_For 
+' 	Concat 
+' 	LitStr 0x000C " PriceClose="
+' 	Concat 
+' 	Ld PriceOpen 
+' 	Concat 
+' 	LitStr 0x000D " CurrentHigh="
+' 	Concat 
+' 	Ld PriceClose 
+' 	Concat 
+' 	LitStr 0x000C " CurrentLow="
+' 	Concat 
+' 	Ld _B_var_CurrentHigh 
+' 	Concat 
+' 	LitStr 0x0005 " Avg="
+' 	Concat 
+' 	Ld CurrentLow 
+' 	Concat 
+' 	LitStr 0x000B " Direction="
+' 	Concat 
+' 	Ld Туче 
+' 	Concat 
+' 	St _B_var_Avg 
+' Line #188:
+' 	Ld _B_var_Avg 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #189:
+' Line #190:
+' 	LitStr 0x0009 "o-S7_180-"
+' 	Ld delta 
+' 	Concat 
+' 	LitStr 0x0001 "-"
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0001 "-"
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	St cmnt 
+' Line #191:
+' Line #192:
+' 	QuoteRem 0x0004 0x0004 "long"
+' Line #193:
+' 	Ld _B_var_CurrentHigh 
+' 	Ld CurrentLow 
+' 	Lt 
+' 	Ld Туче 
+' 	LitStr 0x0001 "B"
+' 	Eq 
+' 	And 
+' 	IfBlock 
+' Line #194:
+' Line #195:
+' 	QuoteRem 0x0008 0x0035 "записываем в лог параметры, по которым заходим в лонг"
+' Line #196:
+' 	LitStr 0x000D "[TRADE] LONG "
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x000C " S7_180 Max="
+' 	Concat 
+' 	Ld Max 
+' 	Concat 
+' 	LitStr 0x0005 " Min="
+' 	Concat 
+' 	Ld Min 
+' 	Concat 
+' 	LitStr 0x000B " PriceOpen="
+' 	Concat 
+' 	Ld _B_var_For 
+' 	Concat 
+' 	LitStr 0x000C " PriceClose="
+' 	Concat 
+' 	Ld PriceOpen 
+' 	Concat 
+' 	LitStr 0x000D " CurrentHigh="
+' 	Concat 
+' 	Ld PriceClose 
+' 	Concat 
+' 	LitStr 0x000C " CurrentLow="
+' 	Concat 
+' 	Ld _B_var_CurrentHigh 
+' 	Concat 
+' 	LitStr 0x0005 " Avg="
+' 	Concat 
+' 	Ld CurrentLow 
+' 	Concat 
+' 	LitStr 0x000B " Direction="
+' 	Concat 
+' 	Ld Туче 
+' 	Concat 
+' 	St _B_var_Avg 
+' Line #197:
+' 	Ld _B_var_Avg 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #198:
+' Line #199:
+' 	Ld PriceClose 
+' 	St Price 
+' 	QuoteRem 0x001C 0x0039 "увеличиваем цену на slip, чтобы наверняка зайти в позицию"
+' Line #200:
+' 	Ld SecCode 
+' 	Ld Price 
+' 	Ld Quantity 
+' 	Ld cmnt 
+' 	ArgsCall (Call) BuyLimit 0x0004 
+' Line #201:
+' Line #202:
+' 	EndIfBlock 
+' Line #203:
+' Line #204:
+' 	QuoteRem 0x0004 0x0005 "short"
+' Line #205:
+' 	Ld PriceClose 
+' 	Ld CurrentLow 
+' 	Gt 
+' 	Ld Туче 
+' 	LitStr 0x0001 "S"
+' 	Eq 
+' 	And 
+' 	IfBlock 
+' Line #206:
+' Line #207:
+' 	QuoteRem 0x0008 0x0035 "записываем в лог параметры, по которым заходим в шорт"
+' Line #208:
+' 	LitStr 0x000E "[TRADE] SHORT "
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x000C " S7_120 Max="
+' 	Concat 
+' 	Ld Max 
+' 	Concat 
+' 	LitStr 0x0005 " Min="
+' 	Concat 
+' 	Ld Min 
+' 	Concat 
+' 	LitStr 0x000B " PriceOpen="
+' 	Concat 
+' 	Ld _B_var_For 
+' 	Concat 
+' 	LitStr 0x000C " PriceClose="
+' 	Concat 
+' 	Ld PriceOpen 
+' 	Concat 
+' 	LitStr 0x000D " CurrentHigh="
+' 	Concat 
+' 	Ld PriceClose 
+' 	Concat 
+' 	LitStr 0x000C " CurrentLow="
+' 	Concat 
+' 	Ld _B_var_CurrentHigh 
+' 	Concat 
+' 	LitStr 0x0005 " Avg="
+' 	Concat 
+' 	Ld CurrentLow 
+' 	Concat 
+' 	LitStr 0x000B " Direction="
+' 	Concat 
+' 	Ld Туче 
+' 	Concat 
+' 	St _B_var_Avg 
+' Line #209:
+' 	Ld _B_var_Avg 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #210:
+' Line #211:
+' 	Ld _B_var_CurrentHigh 
+' 	St Price 
+' 	QuoteRem 0x001B 0x0039 "увеличиваем цену на slip, чтобы наверняка зайти в позицию"
+' Line #212:
+' 	Ld SecCode 
+' 	Ld Price 
+' 	Ld Quantity 
+' 	Ld cmnt 
+' 	ArgsCall (Call) SellLimit 0x0004 
+' Line #213:
+' Line #214:
+' 	EndIfBlock 
+' Line #215:
+' Line #216:
+' 	EndSub 
+' Line #217:
+' Line #218:
+' Line #219:
+' Line #220:
+' Line #221:
+' 	FuncDefn (Sub КS7_120(ByVal sht As ))
+' Line #222:
+' Line #223:
+' 	Dim 
+' 	VarDefn i (As Byte)
+' Line #224:
+' 	Dim 
+' 	VarDefn m (As Byte)
+' Line #225:
+' Line #226:
+' 	Dim 
+' 	VarDefn Max (As Double)
+' Line #227:
+' 	Dim 
+' 	VarDefn Min (As Double)
+' Line #228:
+' 	Dim 
+' 	VarDefn _B_var_For (As Double)
+' Line #229:
+' 	Dim 
+' 	VarDefn PriceOpen (As Double)
+' Line #230:
+' 	Dim 
+' 	VarDefn PriceClose (As Double)
+' Line #231:
+' 	Dim 
+' 	VarDefn _B_var_CurrentHigh (As Double)
+' Line #232:
+' 	Dim 
+' 	VarDefn CurrentLow (As Double)
+' Line #233:
+' 	Dim 
+' 	VarDefn Price (As Double)
+' Line #234:
+' Line #235:
+' 	Dim 
+' 	VarDefn lastrow (As Integer)
+' Line #236:
+' Line #237:
+' 	Dim 
+' 	VarDefn _B_var_Avg (As String)
+' 	QuoteRem 0x0015 0x0024 "строка с параметрами для логирования"
+' Line #238:
+' 	Dim 
+' 	VarDefn Туче (As String)
+' Line #239:
+' 	Dim 
+' 	VarDefn cmnt (As String)
+' Line #240:
+' Line #241:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0005 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	LitDI2 0x0079 
+' 	LitDI2 0x0005 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	ArgsLd Range 0x0002 
+' 	Ld S7_120 
+' 	MemLd WorksheetFunction 
+' 	ArgsMemLd Max 0x0001 
+' 	St Max 
+' Line #242:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0006 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	LitDI2 0x0079 
+' 	LitDI2 0x0006 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	ArgsLd Range 0x0002 
+' 	Ld S7_120 
+' 	MemLd WorksheetFunction 
+' 	ArgsMemLd Min 0x0001 
+' 	St Min 
+' Line #243:
+' 	LitDI2 0x0079 
+' 	LitDI2 0x0004 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St _B_var_For 
+' Line #244:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0007 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St PriceOpen 
+' Line #245:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0005 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St PriceClose 
+' Line #246:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0006 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St _B_var_CurrentHigh 
+' Line #247:
+' Line #248:
+' 	QuoteRem 0x0000 0x0040 "обновление значений max и min по стратегии на странице стратегий"
+' Line #249:
+' 	StartWithExpr 
+' 	LitStr 0x000A "strategies"
+' 	Ld strFileFullName 
+' 	ArgsMemLd Sheets 0x0001 
+' 	With 
+' Line #250:
+' Line #251:
+' 	Ld xlUp 
+' 	Ld Rows 
+' 	MemLd Count 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	ArgsMemLd End 0x0001 
+' 	MemLd Row 
+' 	St lastrow 
+' Line #252:
+' Line #253:
+' 	LitDI2 0x0000 
+' 	St m 
+' 	QuoteRem 0x000A 0x001E "триггер, что стратегия найдена"
+' Line #254:
+' 	LitDI2 0x0002 
+' 	St i 
+' Line #255:
+' 	Ld i 
+' 	Ld lastrow 
+' 	Le 
+' 	Ld m 
+' 	LitDI2 0x0000 
+' 	Eq 
+' 	And 
+' 	While 
+' Line #256:
+' 	LineCont 0x0014 0C 00 08 00 18 00 08 00 24 00 08 00 30 00 08 00 3C 00 08 00
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0003 "RS7"
+' 	Eq 
+' 	Ld i 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0078 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0003 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld SecCode 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0005 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld delta 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0006 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld sl 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld tp 
+' 	Eq 
+' 	And 
+' 	IfBlock 
+' Line #257:
+' Line #258:
+' 	LitDI2 0x0001 
+' 	St m 
+' 	QuoteRem 0x0012 0x002B "найдена нужная стратегия в списке стратегий"
+' Line #259:
+' Line #260:
+' 	QuoteRem 0x0008 0x0014 "нет открытой позиции"
+' Line #261:
+' 	Ld i 
+' 	LitDI2 0x000A 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0000 
+' 	Eq 
+' 	IfBlock 
+' Line #262:
+' Line #263:
+' 	Ld Max 
+' 	Ld Min 
+' 	Sub 
+' 	Ld delta 
+' 	Gt 
+' 	IfBlock 
+' Line #264:
+' Line #265:
+' 	QuoteRem 0x0010 0x0017 "обновление значения Max"
+' Line #266:
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	Ld Max 
+' 	Lt 
+' 	Or 
+' 	IfBlock 
+' Line #267:
+' 	Ld Max 
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #268:
+' 	Ld Min 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #269:
+' Line #270:
+' 	QuoteRem 0x0018 0x0033 "обновление значения Avg, т.к. обновился Max (и Min)"
+' Line #271:
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Add 
+' 	Paren 
+' 	LitDI2 0x0002 
+' 	Div 
+' 	Ld i 
+' 	LitDI2 0x000E 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #272:
+' Line #273:
+' 	QuoteRem 0x0014 0x001D "обновление значения Direction"
+' Line #274:
+' 	Ld _B_var_For 
+' 	Ld PriceOpen 
+' 	Lt 
+' 	IfBlock 
+' Line #275:
+' 	LitStr 0x0001 "B"
+' 	Ld i 
+' 	LitDI2 0x000F 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #276:
+' 	EndIfBlock 
+' Line #277:
+' 	Ld _B_var_For 
+' 	Ld PriceOpen 
+' 	Gt 
+' 	IfBlock 
+' Line #278:
+' 	LitStr 0x0001 "S"
+' 	Ld i 
+' 	LitDI2 0x000F 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #279:
+' 	EndIfBlock 
+' Line #280:
+' Line #281:
+' 	EndIfBlock 
+' Line #282:
+' Line #283:
+' 	QuoteRem 0x0010 0x0017 "обновление значения Min"
+' Line #284:
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	Ld Min 
+' 	Gt 
+' 	Or 
+' 	IfBlock 
+' Line #285:
+' 	Ld Min 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #286:
+' 	Ld Max 
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #287:
+' 	QuoteRem 0x0018 0x0033 "обновление значения Avg, т.к. обновился Min (и Max)"
+' Line #288:
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Add 
+' 	Paren 
+' 	LitDI2 0x0002 
+' 	Div 
+' 	Ld i 
+' 	LitDI2 0x000E 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #289:
+' Line #290:
+' 	QuoteRem 0x0014 0x001D "обновление значения Direction"
+' Line #291:
+' 	Ld _B_var_For 
+' 	Ld PriceOpen 
+' 	Lt 
+' 	IfBlock 
+' Line #292:
+' 	LitStr 0x0001 "B"
+' 	Ld i 
+' 	LitDI2 0x000F 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #293:
+' 	EndIfBlock 
+' Line #294:
+' 	Ld _B_var_For 
+' 	Ld PriceOpen 
+' 	Gt 
+' 	IfBlock 
+' Line #295:
+' 	LitStr 0x0001 "S"
+' 	Ld i 
+' 	LitDI2 0x000F 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #296:
+' 	EndIfBlock 
+' Line #297:
+' Line #298:
+' 	EndIfBlock 
+' Line #299:
+' Line #300:
+' 	EndIfBlock 
+' Line #301:
+' Line #302:
+' 	EndIfBlock 
+' Line #303:
+' Line #304:
+' 	EndIfBlock 
+' Line #305:
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	Add 
+' 	St i 
+' Line #306:
+' 	Wend 
+' Line #307:
+' Line #308:
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	LitDI2 0x000E 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	St CurrentLow 
+' Line #309:
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	LitDI2 0x000F 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	St Туче 
+' Line #310:
+' Line #311:
+' 	EndWith 
+' Line #312:
+' Line #313:
+' Line #314:
+' 	LitStr 0x0003 "RS7"
+' 	Ld SecCode 
+' 	LitDI2 0x0078 
+' 	Ld delta 
+' 	Ld sl 
+' 	Ld tp 
+' 	ArgsCall (Call) BlockTrade 0x0006 
+' Line #315:
+' Line #316:
+' 	LitStr 0x0004 "Max="
+' 	Ld Max 
+' 	Concat 
+' 	LitStr 0x0005 " Min="
+' 	Concat 
+' 	Ld Min 
+' 	Concat 
+' 	LitStr 0x000B " PriceOpen="
+' 	Concat 
+' 	Ld _B_var_For 
+' 	Concat 
+' 	LitStr 0x000C " PriceClose="
+' 	Concat 
+' 	Ld PriceOpen 
+' 	Concat 
+' 	LitStr 0x000D " CurrentHigh="
+' 	Concat 
+' 	Ld PriceClose 
+' 	Concat 
+' 	LitStr 0x000C " CurrentLow="
+' 	Concat 
+' 	Ld _B_var_CurrentHigh 
+' 	Concat 
+' 	LitStr 0x0005 " Avg="
+' 	Concat 
+' 	Ld CurrentLow 
+' 	Concat 
+' 	LitStr 0x000B " Direction="
+' 	Concat 
+' 	Ld Туче 
+' 	Concat 
+' 	St _B_var_Avg 
+' Line #317:
+' 	Ld _B_var_Avg 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #318:
+' Line #319:
+' 	LitStr 0x000A "o-RS7_120-"
+' 	Ld delta 
+' 	Concat 
+' 	LitStr 0x0001 "-"
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0001 "-"
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	St cmnt 
+' Line #320:
+' Line #321:
+' 	QuoteRem 0x0004 0x0004 "long"
+' Line #322:
+' 	Ld _B_var_CurrentHigh 
+' 	Ld CurrentLow 
+' 	Lt 
+' 	Ld Туче 
+' 	LitStr 0x0001 "B"
+' 	Eq 
+' 	And 
+' 	IfBlock 
+' Line #323:
+' Line #324:
+' 	QuoteRem 0x0008 0x0035 "записываем в лог параметры, по которым заходим в лонг"
+' Line #325:
+' 	LitStr 0x000D "[TRADE] LONG "
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x000D " RS7_120 Max="
+' 	Concat 
+' 	Ld Max 
+' 	Concat 
+' 	LitStr 0x0005 " Min="
+' 	Concat 
+' 	Ld Min 
+' 	Concat 
+' 	LitStr 0x000B " PriceOpen="
+' 	Concat 
+' 	Ld _B_var_For 
+' 	Concat 
+' 	LitStr 0x000C " PriceClose="
+' 	Concat 
+' 	Ld PriceOpen 
+' 	Concat 
+' 	LitStr 0x000D " CurrentHigh="
+' 	Concat 
+' 	Ld PriceClose 
+' 	Concat 
+' 	LitStr 0x000C " CurrentLow="
+' 	Concat 
+' 	Ld _B_var_CurrentHigh 
+' 	Concat 
+' 	LitStr 0x0005 " Avg="
+' 	Concat 
+' 	Ld CurrentLow 
+' 	Concat 
+' 	LitStr 0x000B " Direction="
+' 	Concat 
+' 	Ld Туче 
+' 	Concat 
+' 	St _B_var_Avg 
+' Line #326:
+' 	Ld _B_var_Avg 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #327:
+' Line #328:
+' 	Ld PriceClose 
+' 	St Price 
+' 	QuoteRem 0x001C 0x0039 "увеличиваем цену на slip, чтобы наверняка зайти в позицию"
+' Line #329:
+' 	Ld SecCode 
+' 	Ld Price 
+' 	Ld Quantity 
+' 	Ld cmnt 
+' 	ArgsCall (Call) BuyLimit 0x0004 
+' Line #330:
+' Line #331:
+' 	EndIfBlock 
+' Line #332:
+' Line #333:
+' 	QuoteRem 0x0004 0x0005 "short"
+' Line #334:
+' 	Ld PriceClose 
+' 	Ld CurrentLow 
+' 	Gt 
+' 	Ld Туче 
+' 	LitStr 0x0001 "S"
+' 	Eq 
+' 	And 
+' 	IfBlock 
+' Line #335:
+' Line #336:
+' 	QuoteRem 0x0008 0x0035 "записываем в лог параметры, по которым заходим в шорт"
+' Line #337:
+' 	LitStr 0x000E "[TRADE] SHORT "
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x000D " RS7_120 Max="
+' 	Concat 
+' 	Ld Max 
+' 	Concat 
+' 	LitStr 0x0005 " Min="
+' 	Concat 
+' 	Ld Min 
+' 	Concat 
+' 	LitStr 0x000B " PriceOpen="
+' 	Concat 
+' 	Ld _B_var_For 
+' 	Concat 
+' 	LitStr 0x000C " PriceClose="
+' 	Concat 
+' 	Ld PriceOpen 
+' 	Concat 
+' 	LitStr 0x000D " CurrentHigh="
+' 	Concat 
+' 	Ld PriceClose 
+' 	Concat 
+' 	LitStr 0x000C " CurrentLow="
+' 	Concat 
+' 	Ld _B_var_CurrentHigh 
+' 	Concat 
+' 	LitStr 0x0005 " Avg="
+' 	Concat 
+' 	Ld CurrentLow 
+' 	Concat 
+' 	LitStr 0x000B " Direction="
+' 	Concat 
+' 	Ld Туче 
+' 	Concat 
+' 	St _B_var_Avg 
+' Line #338:
+' 	Ld _B_var_Avg 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #339:
+' Line #340:
+' 	Ld _B_var_CurrentHigh 
+' 	St Price 
+' 	QuoteRem 0x001B 0x0039 "увеличиваем цену на slip, чтобы наверняка зайти в позицию"
+' Line #341:
+' 	Ld SecCode 
+' 	Ld Price 
+' 	Ld Quantity 
+' 	Ld cmnt 
+' 	ArgsCall (Call) SellLimit 0x0004 
+' Line #342:
+' Line #343:
+' 	EndIfBlock 
+' Line #344:
+' Line #345:
+' 	EndSub 
+' Line #346:
+' VBA/Log - 2552 bytes
+' Line #0:
+' 	Option  (Explicit)
+' Line #1:
+' 	FuncDefn (Sub Logging(Data))
+' Line #2:
+' 	QuoteRem 0x0000 0x0012 "With Sheets("Log")"
+' Line #3:
+' Line #4:
+' 	QuoteRem 0x0000 0x002D "lastrow = .Cells(Rows.Count, 1).End(xlUp).Row"
+' Line #5:
+' 	QuoteRem 0x0000 0x001E ".Cells(lastrow + 1, 1) = Now()"
+' Line #6:
+' 	QuoteRem 0x0000 0x0023 ".Cells(lastrow + 1, 2) = Data 'text"
+' Line #7:
+' 	Dim 
+' 	VarDefn _B_var_f (As String)
+' Line #8:
+' 	Dim 
+' 	VarDefn stringToLog (As String)
+' Line #9:
+' Line #10:
+' 	Ld strFileFullName 
+' 	MemLd ThisWorkbook 
+' 	St _B_var_f 
+' Line #11:
+' 	Ld Now 
+' 	LitStr 0x0001 " "
+' 	Concat 
+' 	Ld Data 
+' 	Concat 
+' 	St stringToLog 
+' Line #12:
+' 	Ld _B_var_f 
+' 	Ld _B_var_f 
+' 	FnLen 
+' 	LitDI2 0x000A 
+' 	Sub 
+' 	ArgsLd Left 0x0002 
+' 	LitStr 0x0005 "Logs\"
+' 	Concat 
+' 	Ld Date 
+' 	Concat 
+' 	LitStr 0x0004 ".log"
+' 	Concat 
+' 	LitDI2 0x0001 
+' 	Sharp 
+' 	LitDefault 
+' 	Open (For Append Shared)
+' Line #13:
+' 	LitDI2 0x0001 
+' 	Sharp 
+' 	PrintChan 
+' 	Ld stringToLog 
+' 	PrintItemNL 
+' Line #14:
+' 	LitDI2 0x0001 
+' 	Sharp 
+' 	Close 0x0001 
+' Line #15:
+' Line #16:
+' 	QuoteRem 0x0000 0x0008 "End With"
+' Line #17:
+' 	EndSub 
+' VBA/Лист3 - 1179 bytes
+' VBA/Deals - 3069 bytes
+' Line #0:
+' 	FuncDefn (Sub deals())
+' Line #1:
+' 	StartWithExpr 
+' 	LitStr 0x0005 "deals"
+' 	ArgsLd Sheets 0x0001 
+' 	With 
+' Line #2:
+' Line #3:
+' 	Ld xlUp 
+' 	Ld Rows 
+' 	MemLd Count 
+' 	LitDI2 0x0002 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	ArgsMemLd End 0x0001 
+' 	MemLd Row 
+' 	St lastrow 
+' Line #4:
+' Line #5:
+' 	StartForVariable 
+' 	Ld i 
+' 	EndForVariable 
+' 	LitDI2 0x0002 
+' 	Ld lastrow 
+' 	For 
+' Line #6:
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	IfBlock 
+' 	QuoteRem 0x0020 0x0030 "получена новая сделка, которая ещё не обработана"
+' Line #7:
+' 	LitStr 0x0001 "x"
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' 	QuoteRem 0x001D 0x0029 "проставили признак, что сделка обработана"
+' Line #8:
+' 	Ld i 
+' 	LitDI2 0x0002 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0001 "_"
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x0006 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	LitStr 0x0001 "_"
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	LitStr 0x0001 "_"
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x0009 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	LitStr 0x0001 "_"
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x000A 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	LitStr 0x0001 "_"
+' 	Concat 
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Concat 
+' 	St stringToLog 
+' Line #9:
+' 	Ld stringToLog 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #10:
+' 	QuoteRem 0x0008 0x005A "снимаем блокировку на открытие позиции по стратегии 3, т.к. прошла сделка закрытия позиции"
+' Line #11:
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0008 
+' 	ArgsLd Left 0x0002 
+' 	LitStr 0x0008 "c-strat3"
+' 	Eq 
+' 	IfBlock 
+' Line #12:
+' 	LitStr 0x0000 ""
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0009 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #13:
+' 	EndIfBlock 
+' Line #14:
+' 	QuoteRem 0x0008 0x0050 "прошла сделка открытия позиции, выставляем стоп со связанной на закрытие позиции"
+' Line #15:
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0008 
+' 	ArgsLd Left 0x0002 
+' 	LitStr 0x0008 "o-strat3"
+' 	Eq 
+' 	IfBlock 
+' Line #16:
+' 	LitStr 0x0001 "x"
+' 	LitDI2 0x0003 
+' 	LitDI2 0x0009 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' 	QuoteRem 0x0021 0x003E "проставляем признак, что выставлена заявка на закрытие позиции"
+' Line #17:
+' 	Ld i 
+' 	LitDI2 0x0006 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	St SecCode 
+' Line #18:
+' 	QuoteRem 0x000C 0x0062 "устанавливаем направление заявки на закрытие позиции противоположное направлению в сделке открытия"
+' Line #19:
+' 	Ld i 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0005 "Купля"
+' 	Eq 
+' 	IfBlock 
+' Line #20:
+' 	LitStr 0x0007 "Продажа"
+' 	St Action 
+' Line #21:
+' 	EndIfBlock 
+' Line #22:
+' 	Ld i 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0007 "Продажа"
+' 	Eq 
+' 	IfBlock 
+' Line #23:
+' 	LitStr 0x0005 "Купля"
+' 	St Action 
+' Line #24:
+' 	EndIfBlock 
+' Line #25:
+' 	Ld i 
+' 	LitDI2 0x0008 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	St TrdAccount 
+' Line #26:
+' 	Ld i 
+' 	LitDI2 0x000A 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	St Volume 
+' Line #27:
+' 	EndIfBlock 
+' Line #28:
+' Line #29:
+' 	EndIfBlock 
+' Line #30:
+' 	StartForVariable 
+' 	Next 
+' Line #31:
+' Line #32:
+' 	EndWith 
+' Line #33:
+' 	EndSub 
+' VBA/Лист4 - 1179 bytes
+' VBA/Лист5 - 1126 bytes
+' VBA/s6 - 8965 bytes
+' Line #0:
+' 	Option  (Explicit)
+' Line #1:
+' 	FuncDefn (Sub _B_var_ANTIRS6_15(ByVal sht As ))
+' Line #2:
+' Line #3:
+' 	Dim 
+' 	VarDefn min15_Candle1_O (As Double)
+' Line #4:
+' 	Dim 
+' 	VarDefn min15_Candle1_C (As Double)
+' Line #5:
+' 	Dim 
+' 	VarDefn min15_Candle2_O (As Double)
+' Line #6:
+' 	Dim 
+' 	VarDefn min15_Candle2_C (As Double)
+' Line #7:
+' 	Dim 
+' 	VarDefn min15_Candle3_O (As Double)
+' Line #8:
+' 	Dim 
+' 	VarDefn min15_Candle3_C (As Double)
+' Line #9:
+' 	Dim 
+' 	VarDefn Price (As Double)
+' Line #10:
+' 	Dim 
+' 	VarDefn cmnt (As String)
+' Line #11:
+' 	Dim 
+' 	VarDefn CandleParams (As String)
+' 	QuoteRem 0x001B 0x002B "строка с параметрами свечей для логирования"
+' Line #12:
+' 	Dim 
+' 	VarDefn GoldArray15min (As Variant)
+' Line #13:
+' 	Dim 
+' 	VarDefn timeframe (As Integer)
+' Line #14:
+' Line #15:
+' 	QuoteRem 0x0000 0x0031 "GoldArray15min = Get3Candles15min(Sheets("gold"))"
+' Line #16:
+' 	Ld sht 
+' 	ArgsLd Get3Candles15min 0x0001 
+' 	St GoldArray15min 
+' Line #17:
+' Line #18:
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0000 
+' 	ArgsLd GoldArray15min 0x0002 
+' 	St min15_Candle1_O 
+' Line #19:
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0003 
+' 	ArgsLd GoldArray15min 0x0002 
+' 	St min15_Candle1_C 
+' Line #20:
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0000 
+' 	ArgsLd GoldArray15min 0x0002 
+' 	St min15_Candle2_O 
+' Line #21:
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0003 
+' 	ArgsLd GoldArray15min 0x0002 
+' 	St min15_Candle2_C 
+' Line #22:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0000 
+' 	ArgsLd GoldArray15min 0x0002 
+' 	St min15_Candle3_O 
+' Line #23:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0003 
+' 	ArgsLd GoldArray15min 0x0002 
+' 	St min15_Candle3_C 
+' Line #24:
+' Line #25:
+' 	LitStr 0x0003 "AR6"
+' 	Ld SecCode 
+' 	LitDI2 0x000F 
+' 	Ld delta 
+' 	Ld sl 
+' 	Ld tp 
+' 	ArgsCall (Call) BlockTrade 0x0006 
+' Line #26:
+' Line #27:
+' 	LitStr 0x0009 "o-AR6_15-"
+' 	Ld delta 
+' 	Concat 
+' 	LitStr 0x0001 "-"
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0001 "-"
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	St cmnt 
+' Line #28:
+' Line #29:
+' 	LitStr 0x0003 "O1="
+' 	Ld min15_Candle1_O 
+' 	Concat 
+' 	LitStr 0x0005 "; C1="
+' 	Concat 
+' 	Ld min15_Candle1_C 
+' 	Concat 
+' 	LitStr 0x0005 "; O2="
+' 	Concat 
+' 	Ld min15_Candle2_O 
+' 	Concat 
+' 	LitStr 0x0005 "; C2="
+' 	Concat 
+' 	Ld min15_Candle2_C 
+' 	Concat 
+' 	LitStr 0x0005 "; O3="
+' 	Concat 
+' 	Ld min15_Candle3_O 
+' 	Concat 
+' 	LitStr 0x0005 "; C3="
+' 	Concat 
+' 	Ld min15_Candle3_C 
+' 	Concat 
+' 	St CandleParams 
+' Line #30:
+' 	Ld CandleParams 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #31:
+' Line #32:
+' 	QuoteRem 0x0004 0x0005 "short"
+' Line #33:
+' 	LineCont 0x0010 04 00 04 00 08 00 04 00 0C 00 04 00 12 00 04 00
+' 	Ld min15_Candle1_O 
+' 	Ld min15_Candle1_C 
+' 	Gt 
+' 	Ld min15_Candle2_O 
+' 	Ld min15_Candle2_C 
+' 	Gt 
+' 	And 
+' 	Ld min15_Candle3_O 
+' 	Ld min15_Candle3_C 
+' 	Lt 
+' 	And 
+' 	Ld min15_Candle1_O 
+' 	Ld min15_Candle2_C 
+' 	Sub 
+' 	Ld delta 
+' 	Ge 
+' 	And 
+' 	Ld min15_Candle3_C 
+' 	Ld min15_Candle1_O 
+' 	Gt 
+' 	And 
+' 	IfBlock 
+' Line #34:
+' Line #35:
+' 	QuoteRem 0x0004 0x003C "записываем в лог параметры свечей, по которым заходим в шорт"
+' Line #36:
+' 	LitStr 0x000E "[TRADE] SHORT "
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x000B " AR6_15 O1="
+' 	Concat 
+' 	Ld min15_Candle1_O 
+' 	Concat 
+' 	LitStr 0x0005 "; C1="
+' 	Concat 
+' 	Ld min15_Candle1_C 
+' 	Concat 
+' 	LitStr 0x0005 "; O2="
+' 	Concat 
+' 	Ld min15_Candle2_O 
+' 	Concat 
+' 	LitStr 0x0005 "; C2="
+' 	Concat 
+' 	Ld min15_Candle2_C 
+' 	Concat 
+' 	LitStr 0x0005 "; O3="
+' 	Concat 
+' 	Ld min15_Candle3_O 
+' 	Concat 
+' 	LitStr 0x0005 "; C3="
+' 	Concat 
+' 	Ld min15_Candle3_C 
+' 	Concat 
+' 	St CandleParams 
+' Line #37:
+' 	Ld CandleParams 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #38:
+' Line #39:
+' 	Ld min15_Candle3_C 
+' 	St Price 
+' 	QuoteRem 0x001C 0x0037 "уменьшаем цену на slip, чтобы наверняка зайти в позицию"
+' Line #40:
+' 	Ld SecCode 
+' 	Ld Price 
+' 	Ld Quantity 
+' 	Ld cmnt 
+' 	ArgsCall (Call) SellLimit 0x0004 
+' Line #41:
+' 	QuoteRem 0x0004 0x0040 "ThisWorkbook.Sheets("strategies").Cells(p, 10).Value = -Quantity"
+' Line #42:
+' Line #43:
+' 	EndIfBlock 
+' Line #44:
+' Line #45:
+' Line #46:
+' 	QuoteRem 0x0004 0x0004 "long"
+' Line #47:
+' 	LineCont 0x0010 04 00 04 00 08 00 04 00 0C 00 04 00 12 00 04 00
+' 	Ld min15_Candle1_O 
+' 	Ld min15_Candle1_C 
+' 	Lt 
+' 	Ld min15_Candle2_O 
+' 	Ld min15_Candle2_C 
+' 	Lt 
+' 	And 
+' 	Ld min15_Candle3_O 
+' 	Ld min15_Candle3_C 
+' 	Gt 
+' 	And 
+' 	Ld min15_Candle2_C 
+' 	Ld min15_Candle1_O 
+' 	Sub 
+' 	Ld delta 
+' 	Ge 
+' 	And 
+' 	Ld min15_Candle3_C 
+' 	Ld min15_Candle1_O 
+' 	Lt 
+' 	And 
+' 	IfBlock 
+' Line #48:
+' Line #49:
+' 	QuoteRem 0x0004 0x003C "записываем в лог параметры свечей, по которым заходим в лонг"
+' Line #50:
+' 	LitStr 0x000D "[TRADE] LONG "
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x000B " AR6_15 O1="
+' 	Concat 
+' 	Ld min15_Candle1_O 
+' 	Concat 
+' 	LitStr 0x0005 "; C1="
+' 	Concat 
+' 	Ld min15_Candle1_C 
+' 	Concat 
+' 	LitStr 0x0005 "; O2="
+' 	Concat 
+' 	Ld min15_Candle2_O 
+' 	Concat 
+' 	LitStr 0x0005 "; C2="
+' 	Concat 
+' 	Ld min15_Candle2_C 
+' 	Concat 
+' 	LitStr 0x0005 "; O3="
+' 	Concat 
+' 	Ld min15_Candle3_O 
+' 	Concat 
+' 	LitStr 0x0005 "; C3="
+' 	Concat 
+' 	Ld min15_Candle3_C 
+' 	Concat 
+' 	St CandleParams 
+' Line #51:
+' 	Ld CandleParams 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #52:
+' Line #53:
+' 	Ld min15_Candle3_C 
+' 	St Price 
+' 	QuoteRem 0x001C 0x0039 "увеличиваем цену на slip, чтобы наверняка зайти в позицию"
+' Line #54:
+' 	Ld SecCode 
+' 	Ld Price 
+' 	Ld Quantity 
+' 	Ld cmnt 
+' 	ArgsCall (Call) BuyLimit 0x0004 
+' Line #55:
+' 	QuoteRem 0x0004 0x003F "ThisWorkbook.Sheets("strategies").Cells(p, 10).Value = Quantity"
+' Line #56:
+' Line #57:
+' 	EndIfBlock 
+' Line #58:
+' Line #59:
+' 	EndSub 
+' VBA/Лист6 - 1126 bytes
+' VBA/Лист7 - 1179 bytes
+' VBA/Лист8 - 2235 bytes
+' Line #0:
+' 	Option  (Explicit)
+' Line #1:
+' 	FuncDefn (Sub Worksheet_Calculate())
+' Line #2:
+' Line #3:
+' 	ArgsCall (Call) main 0x0000 
+' Line #4:
+' Line #5:
+' 	EndSub 
+' VBA/Лист9 - 1142 bytes
+' VBA/s8 - 10163 bytes
+' Line #0:
+' 	Option  (Explicit)
+' Line #1:
+' 	FuncDefn (Sub S8_120_fixSLTP(ByVal sht As ))
+' Line #2:
+' Line #3:
+' 	Dim 
+' 	VarDefn i (As Byte)
+' Line #4:
+' 	Dim 
+' 	VarDefn m (As Byte)
+' Line #5:
+' Line #6:
+' 	Dim 
+' 	VarDefn Max (As Double)
+' Line #7:
+' 	Dim 
+' 	VarDefn Min (As Double)
+' Line #8:
+' 	Dim 
+' 	VarDefn _B_var_For (As Double)
+' Line #9:
+' 	Dim 
+' 	VarDefn PriceOpen (As Double)
+' Line #10:
+' 	Dim 
+' 	VarDefn PriceClose (As Double)
+' Line #11:
+' 	Dim 
+' 	VarDefn _B_var_CurrentHigh (As Double)
+' Line #12:
+' 	Dim 
+' 	VarDefn CurrentLow (As Double)
+' Line #13:
+' 	Dim 
+' 	VarDefn Price (As Double)
+' Line #14:
+' 	Dim 
+' 	VarDefn Ma (As Double)
+' Line #15:
+' Line #16:
+' 	Dim 
+' 	VarDefn lastrow (As Integer)
+' Line #17:
+' Line #18:
+' 	Dim 
+' 	VarDefn _B_var_Avg (As String)
+' 	QuoteRem 0x0015 0x0024 "строка с параметрами для логирования"
+' Line #19:
+' 	Dim 
+' 	VarDefn Туче (As String)
+' Line #20:
+' 	Dim 
+' 	VarDefn cmnt (As String)
+' Line #21:
+' Line #22:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0005 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	LitDI2 0x0079 
+' 	LitDI2 0x0005 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	ArgsLd Range 0x0002 
+' 	Ld S7_120 
+' 	MemLd WorksheetFunction 
+' 	ArgsMemLd Max 0x0001 
+' 	St Max 
+' Line #23:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0006 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	LitDI2 0x0079 
+' 	LitDI2 0x0006 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	ArgsLd Range 0x0002 
+' 	Ld S7_120 
+' 	MemLd WorksheetFunction 
+' 	ArgsMemLd Min 0x0001 
+' 	St Min 
+' Line #24:
+' 	LitDI2 0x0079 
+' 	LitDI2 0x0004 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St _B_var_For 
+' Line #25:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0007 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St PriceOpen 
+' Line #26:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0005 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St PriceClose 
+' Line #27:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0006 
+' 	Ld sht 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	St _B_var_CurrentHigh 
+' Line #28:
+' Line #29:
+' 	QuoteRem 0x0000 0x0040 "обновление значений max и min по стратегии на странице стратегий"
+' Line #30:
+' 	StartWithExpr 
+' 	LitStr 0x000A "strategies"
+' 	Ld strFileFullName 
+' 	ArgsMemLd Sheets 0x0001 
+' 	With 
+' Line #31:
+' Line #32:
+' 	Ld xlUp 
+' 	Ld Rows 
+' 	MemLd Count 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	ArgsMemLd End 0x0001 
+' 	MemLd Row 
+' 	St lastrow 
+' Line #33:
+' Line #34:
+' 	LitDI2 0x0000 
+' 	St m 
+' 	QuoteRem 0x000A 0x001E "триггер, что стратегия найдена"
+' Line #35:
+' 	LitDI2 0x0002 
+' 	St i 
+' Line #36:
+' 	Ld i 
+' 	Ld lastrow 
+' 	Le 
+' 	Ld m 
+' 	LitDI2 0x0000 
+' 	Eq 
+' 	And 
+' 	While 
+' Line #37:
+' 	LineCont 0x0014 0C 00 08 00 18 00 08 00 24 00 08 00 30 00 08 00 3C 00 08 00
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0002 "S8"
+' 	Eq 
+' 	Ld i 
+' 	LitDI2 0x0004 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0078 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0003 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld SecCode 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0005 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld delta 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0006 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld sl 
+' 	Eq 
+' 	And 
+' 	Ld i 
+' 	LitDI2 0x0007 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld tp 
+' 	Eq 
+' 	And 
+' 	IfBlock 
+' Line #38:
+' Line #39:
+' 	LitDI2 0x0001 
+' 	St m 
+' 	QuoteRem 0x0012 0x002B "найдена нужная стратегия в списке стратегий"
+' Line #40:
+' Line #41:
+' 	QuoteRem 0x000C 0x001D "обновление значения Direction"
+' Line #42:
+' 	Ld _B_var_For 
+' 	Ld PriceOpen 
+' 	Lt 
+' 	IfBlock 
+' Line #43:
+' 	LitStr 0x0001 "B"
+' 	Ld i 
+' 	LitDI2 0x000F 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #44:
+' 	Ld Min 
+' 	Ld i 
+' 	LitDI2 0x0010 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #45:
+' 	EndIfBlock 
+' Line #46:
+' 	Ld _B_var_For 
+' 	Ld PriceOpen 
+' 	Gt 
+' 	IfBlock 
+' Line #47:
+' 	LitStr 0x0001 "S"
+' 	Ld i 
+' 	LitDI2 0x000F 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #48:
+' 	Ld Max 
+' 	Ld i 
+' 	LitDI2 0x0010 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #49:
+' 	EndIfBlock 
+' Line #50:
+' Line #51:
+' 	QuoteRem 0x000C 0x0017 "обновление значения Max"
+' Line #52:
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	Ld Max 
+' 	Lt 
+' 	Or 
+' 	IfBlock 
+' Line #53:
+' 	Ld Max 
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #54:
+' 	Ld Min 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #55:
+' 	QuoteRem 0x0014 0x0033 "обновление значения Avg, т.к. обновился Max (и Min)"
+' Line #56:
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Add 
+' 	Paren 
+' 	LitDI2 0x0002 
+' 	Div 
+' 	Ld i 
+' 	LitDI2 0x000E 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #57:
+' 	EndIfBlock 
+' Line #58:
+' Line #59:
+' 	QuoteRem 0x000C 0x0017 "обновление значения Min"
+' Line #60:
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0000 ""
+' 	Eq 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	Ld Min 
+' 	Gt 
+' 	Or 
+' 	IfBlock 
+' Line #61:
+' 	Ld Min 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #62:
+' 	Ld Max 
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #63:
+' 	QuoteRem 0x0014 0x0033 "обновление значения Avg, т.к. обновился Min (и Max)"
+' Line #64:
+' 	Ld i 
+' 	LitDI2 0x000C 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Ld i 
+' 	LitDI2 0x000D 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	Add 
+' 	Paren 
+' 	LitDI2 0x0002 
+' 	Div 
+' 	Ld i 
+' 	LitDI2 0x000E 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemSt Value 
+' Line #65:
+' 	EndIfBlock 
+' Line #66:
+' Line #67:
+' 	QuoteRem 0x000C 0x000A "обновление"
+' Line #68:
+' Line #69:
+' 	EndIfBlock 
+' Line #70:
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	Add 
+' 	St i 
+' Line #71:
+' 	Wend 
+' Line #72:
+' Line #73:
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	LitDI2 0x000E 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	St CurrentLow 
+' Line #74:
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	LitDI2 0x000F 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	St Туче 
+' Line #75:
+' 	Ld i 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	LitDI2 0x0010 
+' 	ArgsMemLdWith Cells 0x0002 
+' 	MemLd Value 
+' 	St Ma 
+' Line #76:
+' Line #77:
+' 	EndWith 
+' Line #78:
+' Line #79:
+' Line #80:
+' 	LitStr 0x0002 "S8"
+' 	Ld SecCode 
+' 	LitDI2 0x0078 
+' 	Ld delta 
+' 	Ld sl 
+' 	Ld tp 
+' 	ArgsCall (Call) BlockTrade 0x0006 
+' Line #81:
+' Line #82:
+' 	LitStr 0x0004 "Max="
+' 	Ld Max 
+' 	Concat 
+' 	LitStr 0x0005 " Min="
+' 	Concat 
+' 	Ld Min 
+' 	Concat 
+' 	LitStr 0x000B " PriceOpen="
+' 	Concat 
+' 	Ld _B_var_For 
+' 	Concat 
+' 	LitStr 0x000C " PriceClose="
+' 	Concat 
+' 	Ld PriceOpen 
+' 	Concat 
+' 	LitStr 0x000D " CurrentHigh="
+' 	Concat 
+' 	Ld PriceClose 
+' 	Concat 
+' 	LitStr 0x000C " CurrentLow="
+' 	Concat 
+' 	Ld _B_var_CurrentHigh 
+' 	Concat 
+' 	LitStr 0x0005 " Avg="
+' 	Concat 
+' 	Ld CurrentLow 
+' 	Concat 
+' 	LitStr 0x000B " Direction="
+' 	Concat 
+' 	Ld Туче 
+' 	Concat 
+' 	St _B_var_Avg 
+' Line #83:
+' 	Ld _B_var_Avg 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #84:
+' Line #85:
+' 	LitStr 0x0009 "o-S8_120-"
+' 	Ld delta 
+' 	Concat 
+' 	LitStr 0x0001 "-"
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0001 "-"
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	St cmnt 
+' Line #86:
+' Line #87:
+' 	QuoteRem 0x0004 0x0004 "long"
+' Line #88:
+' 	Ld _B_var_CurrentHigh 
+' 	Ld Ma 
+' 	Le 
+' 	Ld Туче 
+' 	LitStr 0x0001 "B"
+' 	Eq 
+' 	And 
+' 	IfBlock 
+' Line #89:
+' Line #90:
+' 	QuoteRem 0x0008 0x0035 "записываем в лог параметры, по которым заходим в лонг"
+' Line #91:
+' 	LitStr 0x000D "[TRADE] LONG "
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x000C " S8_120 Max="
+' 	Concat 
+' 	Ld Max 
+' 	Concat 
+' 	LitStr 0x0005 " Min="
+' 	Concat 
+' 	Ld Min 
+' 	Concat 
+' 	LitStr 0x000B " PriceOpen="
+' 	Concat 
+' 	Ld _B_var_For 
+' 	Concat 
+' 	LitStr 0x000C " PriceClose="
+' 	Concat 
+' 	Ld PriceOpen 
+' 	Concat 
+' 	LitStr 0x000D " CurrentHigh="
+' 	Concat 
+' 	Ld PriceClose 
+' 	Concat 
+' 	LitStr 0x000C " CurrentLow="
+' 	Concat 
+' 	Ld _B_var_CurrentHigh 
+' 	Concat 
+' 	LitStr 0x0005 " Avg="
+' 	Concat 
+' 	Ld CurrentLow 
+' 	Concat 
+' 	LitStr 0x000B " Direction="
+' 	Concat 
+' 	Ld Туче 
+' 	Concat 
+' 	St _B_var_Avg 
+' Line #92:
+' 	Ld _B_var_Avg 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #93:
+' Line #94:
+' 	Ld PriceClose 
+' 	St Price 
+' 	QuoteRem 0x001C 0x0031 "увеличиваем цену, чтобы наверняка зайти в позицию"
+' Line #95:
+' 	Ld SecCode 
+' 	Ld Price 
+' 	Ld Quantity 
+' 	Ld cmnt 
+' 	ArgsCall (Call) BuyLimit 0x0004 
+' Line #96:
+' Line #97:
+' 	EndIfBlock 
+' Line #98:
+' Line #99:
+' 	QuoteRem 0x0004 0x0005 "short"
+' Line #100:
+' 	Ld PriceClose 
+' 	Ld Ma 
+' 	Ge 
+' 	Ld Туче 
+' 	LitStr 0x0001 "S"
+' 	Eq 
+' 	And 
+' 	IfBlock 
+' Line #101:
+' Line #102:
+' 	QuoteRem 0x0008 0x0035 "записываем в лог параметры, по которым заходим в шорт"
+' Line #103:
+' 	LitStr 0x000E "[TRADE] SHORT "
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x000C " S8_120 Max="
+' 	Concat 
+' 	Ld Max 
+' 	Concat 
+' 	LitStr 0x0005 " Min="
+' 	Concat 
+' 	Ld Min 
+' 	Concat 
+' 	LitStr 0x000B " PriceOpen="
+' 	Concat 
+' 	Ld _B_var_For 
+' 	Concat 
+' 	LitStr 0x000C " PriceClose="
+' 	Concat 
+' 	Ld PriceOpen 
+' 	Concat 
+' 	LitStr 0x000D " CurrentHigh="
+' 	Concat 
+' 	Ld PriceClose 
+' 	Concat 
+' 	LitStr 0x000C " CurrentLow="
+' 	Concat 
+' 	Ld _B_var_CurrentHigh 
+' 	Concat 
+' 	LitStr 0x0005 " Avg="
+' 	Concat 
+' 	Ld CurrentLow 
+' 	Concat 
+' 	LitStr 0x000B " Direction="
+' 	Concat 
+' 	Ld Туче 
+' 	Concat 
+' 	St _B_var_Avg 
+' Line #104:
+' 	Ld _B_var_Avg 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #105:
+' Line #106:
+' 	Ld _B_var_CurrentHigh 
+' 	St Price 
+' 	QuoteRem 0x001B 0x002F "уменьшаем цену, чтобы наверняка зайти в позицию"
+' Line #107:
+' 	Ld SecCode 
+' 	Ld Price 
+' 	Ld Quantity 
+' 	Ld cmnt 
+' 	ArgsCall (Call) SellLimit 0x0004 
+' Line #108:
+' Line #109:
+' 	EndIfBlock 
+' Line #110:
+' Line #111:
+' 	EndSub 
+' Line #112:
+' VBA/s10 - 17246 bytes
+' Line #0:
+' 	FuncDefn (Sub GoldArray1h(ByVal sht As ))
+' Line #1:
+' 	QuoteRem 0x0000 0x0051 "стратегия с фиксированным выходом, равным 18 раз от дельты close и high3 или low3"
+' Line #2:
+' Line #3:
+' 	Dim 
+' 	VarDefn Rs10_1 (As Double)
+' Line #4:
+' 	Dim 
+' 	VarDefn GetAll3Candles1h (As Double)
+' Line #5:
+' 	Dim 
+' 	VarDefn h1_Candle1_H (As Double)
+' Line #6:
+' 	Dim 
+' 	VarDefn h1_Candle1_O (As Double)
+' Line #7:
+' Line #8:
+' 	Dim 
+' 	VarDefn h1_Candle1_C (As Double)
+' Line #9:
+' 	Dim 
+' 	VarDefn h1_Candle1_L (As Double)
+' Line #10:
+' 	Dim 
+' 	VarDefn h1_Candle2_H (As Double)
+' Line #11:
+' 	Dim 
+' 	VarDefn h1_Candle2_O (As Double)
+' Line #12:
+' Line #13:
+' 	Dim 
+' 	VarDefn h1_Candle2_C (As Double)
+' Line #14:
+' 	Dim 
+' 	VarDefn h1_Candle2_L (As Double)
+' Line #15:
+' 	Dim 
+' 	VarDefn h1_Candle3_H (As Double)
+' Line #16:
+' 	Dim 
+' 	VarDefn h1_Candle3_O (As Double)
+' Line #17:
+' Line #18:
+' 	Dim 
+' 	VarDefn Price (As Double)
+' Line #19:
+' 	Dim 
+' 	VarDefn tp (As Double)
+' Line #20:
+' 	Dim 
+' 	VarDefn delta (As Double)
+' Line #21:
+' Line #22:
+' 	Dim 
+' 	VarDefn cmnt (As String)
+' Line #23:
+' 	Dim 
+' 	VarDefn CandleParams (As String)
+' 	QuoteRem 0x001B 0x002B "строка с параметрами свечей для логирования"
+' Line #24:
+' 	Dim 
+' 	VarDefn h1_Candle3_C (As Variant)
+' Line #25:
+' 	Dim 
+' 	VarDefn timeframe (As Integer)
+' Line #26:
+' 	Dim 
+' 	VarDefn slip (As Integer)
+' Line #27:
+' Line #28:
+' 	Ld sht 
+' 	ArgsLd CurrentTime 0x0001 
+' 	St h1_Candle3_C 
+' Line #29:
+' Line #30:
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0000 
+' 	ArgsLd h1_Candle3_C 0x0002 
+' 	St Rs10_1 
+' Line #31:
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0001 
+' 	ArgsLd h1_Candle3_C 0x0002 
+' 	St GetAll3Candles1h 
+' Line #32:
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0002 
+' 	ArgsLd h1_Candle3_C 0x0002 
+' 	St h1_Candle1_H 
+' Line #33:
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0003 
+' 	ArgsLd h1_Candle3_C 0x0002 
+' 	St h1_Candle1_O 
+' Line #34:
+' Line #35:
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0000 
+' 	ArgsLd h1_Candle3_C 0x0002 
+' 	St h1_Candle1_C 
+' Line #36:
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0001 
+' 	ArgsLd h1_Candle3_C 0x0002 
+' 	St h1_Candle1_L 
+' Line #37:
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0002 
+' 	ArgsLd h1_Candle3_C 0x0002 
+' 	St h1_Candle2_H 
+' Line #38:
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0003 
+' 	ArgsLd h1_Candle3_C 0x0002 
+' 	St h1_Candle2_O 
+' Line #39:
+' Line #40:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0000 
+' 	ArgsLd h1_Candle3_C 0x0002 
+' 	St h1_Candle2_C 
+' Line #41:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0001 
+' 	ArgsLd h1_Candle3_C 0x0002 
+' 	St h1_Candle2_L 
+' Line #42:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0002 
+' 	ArgsLd h1_Candle3_C 0x0002 
+' 	St h1_Candle3_H 
+' Line #43:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0003 
+' 	ArgsLd h1_Candle3_C 0x0002 
+' 	St h1_Candle3_O 
+' Line #44:
+' Line #45:
+' 	QuoteRem 0x0000 0x0007 "'''''''"
+' Line #46:
+' 	QuoteRem 0x0000 0x0006 "''''''"
+' Line #47:
+' 	QuoteRem 0x0000 0x001A "''''' ПОПРАВИТЬ BLOCKTRADE"
+' Line #48:
+' Line #49:
+' 	LitDI2 0x0000 
+' 	St slip 
+' Line #50:
+' 	LitDI2 0x0000 
+' 	St tp 
+' Line #51:
+' 	Ld _B_var_Open3h 
+' 	St delta 
+' Line #52:
+' Line #53:
+' 	LitStr 0x0005 "Rs101"
+' 	Ld SecCode 
+' 	LitDI2 0x003C 
+' 	Ld delta 
+' 	Ld sl 
+' 	Ld tp 
+' 	ArgsCall (Call) BlockTrade 0x0006 
+' Line #54:
+' Line #55:
+' 	LineCont 0x0008 11 00 0C 00 21 00 0C 00
+' 	LitStr 0x0003 "O1="
+' 	Ld Rs10_1 
+' 	Concat 
+' 	LitStr 0x0004 " H1="
+' 	Concat 
+' 	Ld GetAll3Candles1h 
+' 	Concat 
+' 	LitStr 0x0004 " L1="
+' 	Concat 
+' 	Ld h1_Candle1_H 
+' 	Concat 
+' 	LitStr 0x0004 " C1="
+' 	Concat 
+' 	Ld h1_Candle1_O 
+' 	Concat 
+' 	LitStr 0x0004 " O2="
+' 	Concat 
+' 	Ld h1_Candle1_C 
+' 	Concat 
+' 	LitStr 0x0004 " H2="
+' 	Concat 
+' 	Ld h1_Candle1_L 
+' 	Concat 
+' 	LitStr 0x0004 " L2="
+' 	Concat 
+' 	Ld h1_Candle2_H 
+' 	Concat 
+' 	LitStr 0x0005 "; C2="
+' 	Concat 
+' 	Ld h1_Candle2_O 
+' 	Concat 
+' 	LitStr 0x0004 " O3="
+' 	Concat 
+' 	Ld h1_Candle2_C 
+' 	Concat 
+' 	LitStr 0x0004 " H3="
+' 	Concat 
+' 	Ld h1_Candle2_L 
+' 	Concat 
+' 	LitStr 0x0004 " L3="
+' 	Concat 
+' 	Ld h1_Candle3_H 
+' 	Concat 
+' 	LitStr 0x0005 "; C3="
+' 	Concat 
+' 	Ld h1_Candle3_O 
+' 	Concat 
+' 	St CandleParams 
+' Line #56:
+' 	Ld CandleParams 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #57:
+' Line #58:
+' 	QuoteRem 0x0004 0x0005 "short"
+' Line #59:
+' 	LineCont 0x001C 04 00 04 00 08 00 04 00 0C 00 04 00 10 00 04 00 14 00 04 00 18 00 04 00 1C 00 04 00
+' 	Ld Rs10_1 
+' 	Ld h1_Candle1_O 
+' 	Gt 
+' 	Ld h1_Candle1_C 
+' 	Ld h1_Candle2_O 
+' 	Gt 
+' 	And 
+' 	Ld h1_Candle2_C 
+' 	Ld h1_Candle3_O 
+' 	Lt 
+' 	And 
+' 	Ld GetAll3Candles1h 
+' 	Ld h1_Candle1_L 
+' 	Gt 
+' 	And 
+' 	Ld h1_Candle2_L 
+' 	Ld h1_Candle1_L 
+' 	Gt 
+' 	And 
+' 	Ld h1_Candle1_H 
+' 	Ld h1_Candle2_H 
+' 	Gt 
+' 	And 
+' 	Ld h1_Candle2_C 
+' 	Ld h1_Candle2_O 
+' 	Le 
+' 	And 
+' 	Ld h1_Candle3_O 
+' 	Ld h1_Candle1_C 
+' 	Ge 
+' 	And 
+' 	IfBlock 
+' Line #60:
+' Line #61:
+' 	Ld h1_Candle3_O 
+' 	Ld h1_Candle3_H 
+' 	Sub 
+' 	Paren 
+' 	Ld _B_var_Open3h 
+' 	Mul 
+' 	LitDI2 0x0001 
+' 	ArgsLd roun 0x0002 
+' 	St tp 
+' Line #62:
+' Line #63:
+' 	QuoteRem 0x0008 0x003C "записываем в лог параметры свечей, по которым заходим в шорт"
+' Line #64:
+' 	LineCont 0x0008 15 00 18 00 25 00 18 00
+' 	LitStr 0x000E "[TRADE] SHORT "
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x000E " Rs10_1_1h O1="
+' 	Concat 
+' 	Ld Rs10_1 
+' 	Concat 
+' 	LitStr 0x0004 " H1="
+' 	Concat 
+' 	Ld GetAll3Candles1h 
+' 	Concat 
+' 	LitStr 0x0004 " L1="
+' 	Concat 
+' 	Ld h1_Candle1_H 
+' 	Concat 
+' 	LitStr 0x0004 " C1="
+' 	Concat 
+' 	Ld h1_Candle1_O 
+' 	Concat 
+' 	LitStr 0x0004 " O2="
+' 	Concat 
+' 	Ld h1_Candle1_C 
+' 	Concat 
+' 	LitStr 0x0004 " H2="
+' 	Concat 
+' 	Ld h1_Candle1_L 
+' 	Concat 
+' 	LitStr 0x0004 " L2="
+' 	Concat 
+' 	Ld h1_Candle2_H 
+' 	Concat 
+' 	LitStr 0x0005 "; C2="
+' 	Concat 
+' 	Ld h1_Candle2_O 
+' 	Concat 
+' 	LitStr 0x0004 " O3="
+' 	Concat 
+' 	Ld h1_Candle2_C 
+' 	Concat 
+' 	LitStr 0x0004 " H3="
+' 	Concat 
+' 	Ld h1_Candle2_L 
+' 	Concat 
+' 	LitStr 0x0004 " L3="
+' 	Concat 
+' 	Ld h1_Candle3_H 
+' 	Concat 
+' 	LitStr 0x0005 "; C3="
+' 	Concat 
+' 	Ld h1_Candle3_O 
+' 	Concat 
+' 	St CandleParams 
+' Line #65:
+' 	Ld CandleParams 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #66:
+' Line #67:
+' 	Ld h1_Candle3_H 
+' 	St Price 
+' 	QuoteRem 0x001D 0x0043 "отправляем заявку с ценой low часа, чтобы наверняка войти в позицию"
+' Line #68:
+' 	LitStr 0x000B "o-Rs101_60-"
+' 	Ld _B_var_Open3h 
+' 	Concat 
+' 	LitStr 0x0001 "-"
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0001 "-"
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	St cmnt 
+' Line #69:
+' 	Ld SecCode 
+' 	Ld Price 
+' 	Ld Quantity 
+' 	Ld cmnt 
+' 	ArgsCall (Call) SellLimit 0x0004 
+' Line #70:
+' Line #71:
+' 	EndIfBlock 
+' Line #72:
+' Line #73:
+' 	QuoteRem 0x0004 0x0004 "long"
+' Line #74:
+' 	LineCont 0x001C 04 00 04 00 08 00 04 00 0C 00 04 00 10 00 04 00 14 00 04 00 18 00 04 00 1C 00 04 00
+' 	Ld Rs10_1 
+' 	Ld h1_Candle1_O 
+' 	Lt 
+' 	Ld h1_Candle1_C 
+' 	Ld h1_Candle2_O 
+' 	Lt 
+' 	And 
+' 	Ld h1_Candle2_C 
+' 	Ld h1_Candle3_O 
+' 	Gt 
+' 	And 
+' 	Ld h1_Candle1_H 
+' 	Ld h1_Candle2_H 
+' 	Lt 
+' 	And 
+' 	Ld h1_Candle3_H 
+' 	Ld h1_Candle2_H 
+' 	Lt 
+' 	And 
+' 	Ld GetAll3Candles1h 
+' 	Ld h1_Candle1_L 
+' 	Lt 
+' 	And 
+' 	Ld h1_Candle2_C 
+' 	Ld h1_Candle2_O 
+' 	Ge 
+' 	And 
+' 	Ld h1_Candle3_O 
+' 	Ld h1_Candle1_C 
+' 	Le 
+' 	And 
+' 	IfBlock 
+' Line #75:
+' Line #76:
+' 	Ld h1_Candle2_L 
+' 	Ld h1_Candle3_O 
+' 	Sub 
+' 	Paren 
+' 	Ld _B_var_Open3h 
+' 	Mul 
+' 	LitDI2 0x0001 
+' 	ArgsLd roun 0x0002 
+' 	St tp 
+' Line #77:
+' Line #78:
+' 	QuoteRem 0x0008 0x003C "записываем в лог параметры свечей, по которым заходим в лонг"
+' Line #79:
+' 	LineCont 0x0008 15 00 18 00 25 00 18 00
+' 	LitStr 0x000D "[TRADE] LONG "
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x000E " Rs10_1_1h O1="
+' 	Concat 
+' 	Ld Rs10_1 
+' 	Concat 
+' 	LitStr 0x0004 " H1="
+' 	Concat 
+' 	Ld GetAll3Candles1h 
+' 	Concat 
+' 	LitStr 0x0004 " L1="
+' 	Concat 
+' 	Ld h1_Candle1_H 
+' 	Concat 
+' 	LitStr 0x0004 " C1="
+' 	Concat 
+' 	Ld h1_Candle1_O 
+' 	Concat 
+' 	LitStr 0x0004 " O2="
+' 	Concat 
+' 	Ld h1_Candle1_C 
+' 	Concat 
+' 	LitStr 0x0004 " H2="
+' 	Concat 
+' 	Ld h1_Candle1_L 
+' 	Concat 
+' 	LitStr 0x0004 " L2="
+' 	Concat 
+' 	Ld h1_Candle2_H 
+' 	Concat 
+' 	LitStr 0x0005 "; C2="
+' 	Concat 
+' 	Ld h1_Candle2_O 
+' 	Concat 
+' 	LitStr 0x0004 " O3="
+' 	Concat 
+' 	Ld h1_Candle2_C 
+' 	Concat 
+' 	LitStr 0x0004 " H3="
+' 	Concat 
+' 	Ld h1_Candle2_L 
+' 	Concat 
+' 	LitStr 0x0004 " L3="
+' 	Concat 
+' 	Ld h1_Candle3_H 
+' 	Concat 
+' 	LitStr 0x0005 "; C3="
+' 	Concat 
+' 	Ld h1_Candle3_O 
+' 	Concat 
+' 	St CandleParams 
+' Line #80:
+' 	Ld CandleParams 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #81:
+' Line #82:
+' 	Ld h1_Candle2_L 
+' 	St Price 
+' 	QuoteRem 0x001D 0x0044 "отправляем заявку с ценой high часа, чтобы наверняка войти в позицию"
+' Line #83:
+' 	LitStr 0x000B "o-Rs101_60-"
+' 	Ld _B_var_Open3h 
+' 	Concat 
+' 	LitStr 0x0001 "-"
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0001 "-"
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	St cmnt 
+' Line #84:
+' 	Ld SecCode 
+' 	Ld Price 
+' 	Ld Quantity 
+' 	Ld cmnt 
+' 	ArgsCall (Call) BuyLimit 0x0004 
+' Line #85:
+' Line #86:
+' 	EndIfBlock 
+' Line #87:
+' Line #88:
+' 	EndSub 
+' Line #89:
+' Line #90:
+' Line #91:
+' 	FuncDefn (Sub Rs10(ByVal sht As ))
+' Line #92:
+' 	QuoteRem 0x0000 0x0030 "стратегия с фиксированными sl и tp (tp = sl * k)"
+' Line #93:
+' Line #94:
+' 	Dim 
+' 	VarDefn stringByVal (As Double)
+' Line #95:
+' 	Dim 
+' 	VarDefn Candle1_O (As Double)
+' Line #96:
+' 	Dim 
+' 	VarDefn Candle1_H (As Double)
+' Line #97:
+' 	Dim 
+' 	VarDefn Candle1_L (As Double)
+' Line #98:
+' Line #99:
+' 	Dim 
+' 	VarDefn Candle1_C (As Double)
+' Line #100:
+' 	Dim 
+' 	VarDefn Candle2_O (As Double)
+' Line #101:
+' 	Dim 
+' 	VarDefn Candle2_H (As Double)
+' Line #102:
+' 	Dim 
+' 	VarDefn Candle2_L (As Double)
+' Line #103:
+' Line #104:
+' 	Dim 
+' 	VarDefn Candle2_C (As Double)
+' Line #105:
+' 	Dim 
+' 	VarDefn h1Candle3_H (As Double)
+' Line #106:
+' 	Dim 
+' 	VarDefn Candle3_H (As Double)
+' Line #107:
+' 	Dim 
+' 	VarDefn hCandle3_C (As Double)
+' Line #108:
+' Line #109:
+' 	Dim 
+' 	VarDefn Price (As Double)
+' Line #110:
+' Line #111:
+' 	Dim 
+' 	VarDefn cmnt (As String)
+' Line #112:
+' 	Dim 
+' 	VarDefn CandleParams (As String)
+' 	QuoteRem 0x001B 0x002B "строка с параметрами свечей для логирования"
+' Line #113:
+' 	Dim 
+' 	VarDefn СфтвдArray1h (As Variant)
+' Line #114:
+' Line #115:
+' 	Ld timeframe 
+' 	LitStr 0x0003 "120"
+' 	Eq 
+' 	If 
+' 	BoSImplicit 
+' 	Ld sht 
+' 	ArgsLd ii 0x0001 
+' 	St СфтвдArray1h 
+' 	EndIf 
+' Line #116:
+' Line #117:
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0000 
+' 	ArgsLd СфтвдArray1h 0x0002 
+' 	St stringByVal 
+' Line #118:
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0001 
+' 	ArgsLd СфтвдArray1h 0x0002 
+' 	St Candle1_O 
+' Line #119:
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0002 
+' 	ArgsLd СфтвдArray1h 0x0002 
+' 	St Candle1_H 
+' Line #120:
+' 	LitDI2 0x0000 
+' 	LitDI2 0x0003 
+' 	ArgsLd СфтвдArray1h 0x0002 
+' 	St Candle1_L 
+' Line #121:
+' Line #122:
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0000 
+' 	ArgsLd СфтвдArray1h 0x0002 
+' 	St Candle1_C 
+' Line #123:
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0001 
+' 	ArgsLd СфтвдArray1h 0x0002 
+' 	St Candle2_O 
+' Line #124:
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0002 
+' 	ArgsLd СфтвдArray1h 0x0002 
+' 	St Candle2_H 
+' Line #125:
+' 	LitDI2 0x0001 
+' 	LitDI2 0x0003 
+' 	ArgsLd СфтвдArray1h 0x0002 
+' 	St Candle2_L 
+' Line #126:
+' Line #127:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0000 
+' 	ArgsLd СфтвдArray1h 0x0002 
+' 	St Candle2_C 
+' Line #128:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0001 
+' 	ArgsLd СфтвдArray1h 0x0002 
+' 	St h1Candle3_H 
+' Line #129:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0002 
+' 	ArgsLd СфтвдArray1h 0x0002 
+' 	St Candle3_H 
+' Line #130:
+' 	LitDI2 0x0002 
+' 	LitDI2 0x0003 
+' 	ArgsLd СфтвдArray1h 0x0002 
+' 	St hCandle3_C 
+' Line #131:
+' Line #132:
+' 	LitStr 0x0005 "Rs102"
+' 	Ld SecCode 
+' 	Ld timeframe 
+' 	LitDI2 0x0000 
+' 	Ld sl 
+' 	Ld tp 
+' 	ArgsCall (Call) BlockTrade 0x0006 
+' Line #133:
+' Line #134:
+' 	LineCont 0x0008 11 00 0C 00 21 00 0C 00
+' 	LitStr 0x0003 "O1="
+' 	Ld stringByVal 
+' 	Concat 
+' 	LitStr 0x0004 " H1="
+' 	Concat 
+' 	Ld Candle1_O 
+' 	Concat 
+' 	LitStr 0x0004 " L1="
+' 	Concat 
+' 	Ld Candle1_H 
+' 	Concat 
+' 	LitStr 0x0004 " C1="
+' 	Concat 
+' 	Ld Candle1_L 
+' 	Concat 
+' 	LitStr 0x0004 " O2="
+' 	Concat 
+' 	Ld Candle1_C 
+' 	Concat 
+' 	LitStr 0x0004 " H2="
+' 	Concat 
+' 	Ld Candle2_O 
+' 	Concat 
+' 	LitStr 0x0004 " L2="
+' 	Concat 
+' 	Ld Candle2_H 
+' 	Concat 
+' 	LitStr 0x0005 "; C2="
+' 	Concat 
+' 	Ld Candle2_L 
+' 	Concat 
+' 	LitStr 0x0004 " O3="
+' 	Concat 
+' 	Ld Candle2_C 
+' 	Concat 
+' 	LitStr 0x0004 " H3="
+' 	Concat 
+' 	Ld h1Candle3_H 
+' 	Concat 
+' 	LitStr 0x0004 " L3="
+' 	Concat 
+' 	Ld Candle3_H 
+' 	Concat 
+' 	LitStr 0x0005 "; C3="
+' 	Concat 
+' 	Ld hCandle3_C 
+' 	Concat 
+' 	St CandleParams 
+' Line #135:
+' 	Ld CandleParams 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #136:
+' Line #137:
+' 	QuoteRem 0x0004 0x0005 "short"
+' Line #138:
+' 	LineCont 0x001C 04 00 04 00 08 00 04 00 0C 00 04 00 10 00 04 00 14 00 04 00 18 00 04 00 1C 00 04 00
+' 	Ld stringByVal 
+' 	Ld Candle1_L 
+' 	Gt 
+' 	Ld Candle1_C 
+' 	Ld Candle2_L 
+' 	Gt 
+' 	And 
+' 	Ld Candle2_C 
+' 	Ld hCandle3_C 
+' 	Lt 
+' 	And 
+' 	Ld Candle1_O 
+' 	Ld Candle2_O 
+' 	Gt 
+' 	And 
+' 	Ld h1Candle3_H 
+' 	Ld Candle2_O 
+' 	Gt 
+' 	And 
+' 	Ld Candle1_H 
+' 	Ld Candle2_H 
+' 	Gt 
+' 	And 
+' 	Ld Candle2_C 
+' 	Ld Candle2_L 
+' 	Le 
+' 	And 
+' 	Ld hCandle3_C 
+' 	Ld Candle1_C 
+' 	Ge 
+' 	And 
+' 	IfBlock 
+' Line #139:
+' Line #140:
+' 	QuoteRem 0x0008 0x003C "записываем в лог параметры свечей, по которым заходим в шорт"
+' Line #141:
+' 	LineCont 0x000C 0B 00 18 00 1B 00 18 00 2B 00 18 00
+' 	LitStr 0x000E "[TRADE] SHORT "
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x0001 " "
+' 	Concat 
+' 	Ld timeframe 
+' 	Concat 
+' 	LitStr 0x0006 " Rs102"
+' 	Concat 
+' 	LitStr 0x0004 " O1="
+' 	Concat 
+' 	Ld stringByVal 
+' 	Concat 
+' 	LitStr 0x0004 " H1="
+' 	Concat 
+' 	Ld Candle1_O 
+' 	Concat 
+' 	LitStr 0x0004 " L1="
+' 	Concat 
+' 	Ld Candle1_H 
+' 	Concat 
+' 	LitStr 0x0004 " C1="
+' 	Concat 
+' 	Ld Candle1_L 
+' 	Concat 
+' 	LitStr 0x0004 " O2="
+' 	Concat 
+' 	Ld Candle1_C 
+' 	Concat 
+' 	LitStr 0x0004 " H2="
+' 	Concat 
+' 	Ld Candle2_O 
+' 	Concat 
+' 	LitStr 0x0004 " L2="
+' 	Concat 
+' 	Ld Candle2_H 
+' 	Concat 
+' 	LitStr 0x0004 " C2="
+' 	Concat 
+' 	Ld Candle2_L 
+' 	Concat 
+' 	LitStr 0x0004 " O3="
+' 	Concat 
+' 	Ld Candle2_C 
+' 	Concat 
+' 	LitStr 0x0004 " H3="
+' 	Concat 
+' 	Ld h1Candle3_H 
+' 	Concat 
+' 	LitStr 0x0004 " L3="
+' 	Concat 
+' 	Ld Candle3_H 
+' 	Concat 
+' 	LitStr 0x0004 " C3="
+' 	Concat 
+' 	Ld hCandle3_C 
+' 	Concat 
+' 	St CandleParams 
+' Line #142:
+' 	Ld CandleParams 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #143:
+' Line #144:
+' 	Ld Candle3_H 
+' 	St Price 
+' 	QuoteRem 0x001A 0x0043 "отправляем заявку с ценой low часа, чтобы наверняка войти в позицию"
+' Line #145:
+' 	LitStr 0x0008 "o-Rs102_"
+' 	Ld timeframe 
+' 	Concat 
+' 	LitStr 0x0003 "-0-"
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0001 "-"
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	St cmnt 
+' Line #146:
+' 	Ld SecCode 
+' 	Ld Price 
+' 	Ld Quantity 
+' 	Ld cmnt 
+' 	ArgsCall (Call) SellLimit 0x0004 
+' Line #147:
+' Line #148:
+' 	EndIfBlock 
+' Line #149:
+' Line #150:
+' 	QuoteRem 0x0004 0x0004 "long"
+' Line #151:
+' 	LineCont 0x001C 04 00 04 00 08 00 04 00 0C 00 04 00 10 00 04 00 14 00 04 00 18 00 04 00 1C 00 04 00
+' 	Ld stringByVal 
+' 	Ld Candle1_L 
+' 	Lt 
+' 	Ld Candle1_C 
+' 	Ld Candle2_L 
+' 	Lt 
+' 	And 
+' 	Ld Candle2_C 
+' 	Ld hCandle3_C 
+' 	Gt 
+' 	And 
+' 	Ld Candle1_H 
+' 	Ld Candle2_H 
+' 	Lt 
+' 	And 
+' 	Ld Candle3_H 
+' 	Ld Candle2_H 
+' 	Lt 
+' 	And 
+' 	Ld Candle1_O 
+' 	Ld Candle2_O 
+' 	Lt 
+' 	And 
+' 	Ld Candle2_C 
+' 	Ld Candle2_L 
+' 	Ge 
+' 	And 
+' 	Ld hCandle3_C 
+' 	Ld Candle1_C 
+' 	Le 
+' 	And 
+' 	IfBlock 
+' Line #152:
+' Line #153:
+' 	QuoteRem 0x0008 0x003C "записываем в лог параметры свечей, по которым заходим в лонг"
+' Line #154:
+' 	LineCont 0x000C 0B 00 18 00 1B 00 18 00 2B 00 18 00
+' 	LitStr 0x000D "[TRADE] LONG "
+' 	Ld SecCode 
+' 	Concat 
+' 	LitStr 0x0001 " "
+' 	Concat 
+' 	Ld timeframe 
+' 	Concat 
+' 	LitStr 0x0006 " Rs102"
+' 	Concat 
+' 	LitStr 0x0003 "O1="
+' 	Concat 
+' 	Ld stringByVal 
+' 	Concat 
+' 	LitStr 0x0004 " H1="
+' 	Concat 
+' 	Ld Candle1_O 
+' 	Concat 
+' 	LitStr 0x0004 " L1="
+' 	Concat 
+' 	Ld Candle1_H 
+' 	Concat 
+' 	LitStr 0x0004 " C1="
+' 	Concat 
+' 	Ld Candle1_L 
+' 	Concat 
+' 	LitStr 0x0004 " O2="
+' 	Concat 
+' 	Ld Candle1_C 
+' 	Concat 
+' 	LitStr 0x0004 " H2="
+' 	Concat 
+' 	Ld Candle2_O 
+' 	Concat 
+' 	LitStr 0x0004 " L2="
+' 	Concat 
+' 	Ld Candle2_H 
+' 	Concat 
+' 	LitStr 0x0005 "; C2="
+' 	Concat 
+' 	Ld Candle2_L 
+' 	Concat 
+' 	LitStr 0x0004 " O3="
+' 	Concat 
+' 	Ld Candle2_C 
+' 	Concat 
+' 	LitStr 0x0004 " H3="
+' 	Concat 
+' 	Ld h1Candle3_H 
+' 	Concat 
+' 	LitStr 0x0004 " L3="
+' 	Concat 
+' 	Ld Candle3_H 
+' 	Concat 
+' 	LitStr 0x0005 "; C3="
+' 	Concat 
+' 	Ld hCandle3_C 
+' 	Concat 
+' 	St CandleParams 
+' Line #155:
+' 	Ld CandleParams 
+' 	ArgsCall (Call) Logging 0x0001 
+' Line #156:
+' Line #157:
+' 	Ld h1Candle3_H 
+' 	St Price 
+' 	QuoteRem 0x001A 0x0044 "отправляем заявку с ценой high часа, чтобы наверняка войти в позицию"
+' Line #158:
+' 	LitStr 0x0008 "o-Rs102_"
+' 	Ld timeframe 
+' 	Concat 
+' 	LitStr 0x0003 "-0-"
+' 	Concat 
+' 	Ld sl 
+' 	Concat 
+' 	LitStr 0x0001 "-"
+' 	Concat 
+' 	Ld tp 
+' 	Concat 
+' 	St cmnt 
+' Line #159:
+' 	Ld SecCode 
+' 	Ld Price 
+' 	Ld Quantity 
+' 	Ld cmnt 
+' 	ArgsCall (Call) BuyLimit 0x0004 
+' Line #160:
+' Line #161:
+' 	EndIfBlock 
+' Line #162:
+' Line #163:
+' 	EndSub 
+' Line #164:
+' VBA/Лист2 - 1006 bytes
+
